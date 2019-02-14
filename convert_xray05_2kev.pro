@@ -1,4 +1,4 @@
-PRO xray_lacking_agn_soft052, PLT = plt
+PRO convert_xray05_2kev, PLT = plt
 
 
 ;; load variables
@@ -103,9 +103,9 @@ for i = 0,nxband-1 do begin
     re = execute(ee_052[i]+' = '+ee[i]+' * cnv_052.(i)')
 endfor
 
-sav_vars = [sav_vars,'FF_052','EE_052',ff_052,ee_052, $
-                     'CNV_052']
-sav_inds = [sav_inds]
+sav_vars = ['FF_052','EE_052',ff_052,ee_052, $
+            'CNV_052']
+sav_inds = []
 
 
 ;; commit fluxes and errors to source for use
@@ -120,16 +120,24 @@ used_exp = tt[ixband_052]
 used_flx = ff_052[ixband_052]
 used_err = ee_052[ixband_052]
 used_cnv = 'CNV_052.'+(tag_names(cnv_052))[ixband_052]
+
+;; X-ray detections with chosen band
+iidet_052 = iidet+'_052'
+idet_052 = idet+'_052'
+
 for i = 0,nfield-1 do begin
     re = execute(xray_exp_052[i]+' = '+used_exp[i])
     re = execute(xray_flx_052[i]+' = '+used_flx[i])
     re = execute(xray_err_052[i]+' = '+used_err[i])
     re = execute(xray_cnv_052[i]+' = '+used_cnv[i])
+    re = execute(iidet_052[i]+' = '+xray_exp_052[i]+' gt 0. and '+xray_flx_052[i]+' gt 0. and '+xray_err_052[i]+' gt 0.')
+    re = execute(idet_052[i]+' = where('+iidet_052[i]+')')
 endfor
 
 sav_vars = [sav_vars,'XRAY_EXP_052','XRAY_FLX_052','XRAY_ERR_052','XRAY_CNV_052', $
                      xray_exp_052,xray_flx_052,xray_err_052,xray_cnv_052]
-sav_inds = [sav_inds,'IXBAND_052']
+sav_inds = [sav_inds,'IXBAND_052','IIDET_052','IDET_052', $
+                                   iidet_052, idet_052]
 
 ;; SAVE all variables
 sav_str = strjoin([sav_vars,sav_inds],',')
@@ -138,22 +146,25 @@ re = execute('save,'+sav_str+',/compress,file="xray_soft052.sav"')
 
 ;; check flux-by-flux
 if keyword_set(plt) then begin
+    ;; plot detections
+    iplt = where(iidet_nst_052 or iidet_xmm_052 or iidet_cha_052)
+    
     e = {sym_size:0.5,sym_filled:1,color:'dodger blue', $
          xr:[1e-17,1e-11],yr:[1e-17,1e-11],xlog:1,ylog:1, $
          aspect_ratio:1,dimension:[1200,400], $
-         buffer:0}
+         buffer:1}
     ;; Chandra vs. XMM
-    p = plot(flx_xmm_052[idet],flx_cha_052[idet],'S',_extra=e,layout=[3,1,1])
+    p = plot(flx_xmm_052[iplt],flx_cha_052[iplt],'S',_extra=e,layout=[3,1,1])
     p = plot(e.xr,e.yr,'--',/ov)
     p.xtitle = '$F_{XMM,0.5-2keV}(2-4.5 keV)$'
     p.ytitle = '$F_{Chandra,0.5-2keV}(2-7 keV)$'
     ;; NuSTAR vs. XMM
-    p = plot(flx_xmm_052[idet],flx_nst_052[idet],'S',_extra=e,layout=[3,1,2],/current)
+    p = plot(flx_xmm_052[iplt],flx_nst_052[iplt],'S',_extra=e,layout=[3,1,2],/current)
     p = plot(e.xr,e.yr,'--',/ov)
     p.xtitle = '$F_{XMM,0.5-2keV}(2-4.5 keV)$'
     p.ytitle = '$F_{NuSTAR,0.5-2keV}(3-8 keV)$'
     ;; NuSTAR vs. Chandra
-    p = plot(flx_cha_052[idet],flx_nst_052[idet],'S',_extra=e,layout=[3,1,3],/current)
+    p = plot(flx_cha_052[iplt],flx_nst_052[iplt],'S',_extra=e,layout=[3,1,3],/current)
     p = plot(e.xr,e.yr,'--',/ov)
     p.xtitle = '$F_{Chanrda,0.5-2keV}(2-7 keV)$'
     p.ytitle = '$F_{NuSTAR,0.5-2keV}(3-8 keV)$'
@@ -161,10 +172,6 @@ if keyword_set(plt) then begin
     t = text(0.5,0.9,'$\Gamma = $'+string(phot_ind,'(d3.1)'),alignment=0.5,/normal)
     ;; save!
     p.save,'compare_soft052_gamma_'+string(phot_ind,'(d3.1)')+'.png'
-    ;; gamma = 1.4, 
-    ;; exposure time vs exposure time
-    ;; flux limit vs flux limit
-    ;; hickox+06 (+07 ??) photon index function of x-ray flux
 endif
 
 END

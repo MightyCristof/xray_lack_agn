@@ -1,4 +1,4 @@
-PRO xray_lacking_agn_inf
+PRO agn_xray_infield
 
 
 ;; load fit output, template components, sample matched NuSTAR detections, NuSTAR "in_field" match
@@ -8,13 +8,13 @@ common _xray_xmm
 common _xray_cha
 
 ;; all COMMON blocks called that match sample size
-block = '_'+['fits','xray_nst','xray_xmm','xray_cha']
+block = '_'+['FITS','XRAY_NST','XRAY_XMM','XRAY_CHA']
 
 ;; source is in an X-ray field
 iiinf = []
 for i = 1,n_elements(block)-1 do begin
     tags = scope_varname(common=block[i])
-    iiinf = [iiinf,tags[where(strmatch(tags,'iiinf*'),/null)]]
+    iiinf = [iiinf,tags[where(strmatch(tags,'IIINF*',/fold),/null)]]
 endfor
 iiinf = strjoin(iiinf,' or ')
 re = execute('iiinf = '+iiinf)
@@ -27,9 +27,9 @@ nobj = n_elements(ra)
 for i = 0,n_elements(block)-1 do begin
     ;; remove '_FIELD' suffix
     block_vars = scope_varname(common=block[i])
-    vars = (strsplit(block_vars,'_field',/regex,/extract)).ToArray()
+    vars = (strsplit(block_vars,'_FIELD',/fold,/regex,/extract)).ToArray()
     ;; replace FITS output with '_INF' suffix
-    if (block[i] eq '_fits') then vars = vars+'_inf'
+    if (strmatch(block[i],'_FITS',/fold) eq 1) then vars = vars+'_INF'
     for v = 0,n_elements(block_vars)-1 do begin
         re = execute('sz = size('+block_vars[v]+')')
         case sz[0] of
@@ -42,9 +42,9 @@ for i = 0,n_elements(block)-1 do begin
         endcase
     endfor
     ;; add NSRC to _INF_FITS
-    if (block[i] eq '_FITS') then vars = ['NSRC',vars]
+    if (strmatch(block[i],'_FITS',/fold) eq 1) then vars = ['NSRC',vars]
     sav_str = strjoin(vars,',')
-    sav_file = 'infield'+strsplit(block[i],'_xray',/regex,/extract)+'.sav'
+    sav_file = 'infield'+strlowcase(strsplit(block[i],'_XRAY',/fold,/regex,/extract))+'.sav'
     re = execute('save,'+sav_str+',/compress,file=sav_file')        
 endfor
 

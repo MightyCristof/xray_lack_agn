@@ -1,4 +1,4 @@
-PRO xray_field_xmm
+PRO field_xmm
 
 
 common _fits   
@@ -12,7 +12,13 @@ nsrc = n_elements(ra)
 
 ;; use only archived sources (possibly use )
 arch = mrdfits(pth1,1)
-arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED')]
+arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED')]  ;; observed sources
+arch = arch[where(arch.pn_time gt 0.)]                                      ;; ensure PN observation
+arch = arch[where(arch.duration gt 0.)]                                     ;; sanity check
+iimode = strmatch(arch.pn_mode,'*FLG*',/fold) or $                          ;; ensure Large-Window or Full-Frame mode
+         strmatch(arch.pn_mode,'*FF*',/fold) or $
+         strmatch(arch.pn_mode,'*EFF*',/fold)
+arch = arch[where(iimode)]
 
 ;; XMM MOS FOV is ~33'x33'; use PN FOV inscribed circle--being conservative
 fov = 26.4/2./60.

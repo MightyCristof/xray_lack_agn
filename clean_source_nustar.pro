@@ -1,4 +1,4 @@
-FUNCTION clean_detect_nustar, in_data
+FUNCTION clean_source_nustar, in_data
 
 
 data = in_data

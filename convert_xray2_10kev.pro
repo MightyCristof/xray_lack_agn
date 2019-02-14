@@ -1,5 +1,5 @@
-PRO xray_lacking_agn_soft210, phot_ind, $
-                              PLT = plt
+PRO convert_xray2_10kev, phot_ind, $
+                         PLT = plt
 
 
 ;; load variables
@@ -18,30 +18,21 @@ texp = 'TEXP'+xfield
 sdst = 'SDST'+xfield
 
 ;; number of sources in X-ray fields
-;nsrc = n_elements(iiinf_nst)
-xinf = 'IINF'+xfield
-xdet = 'IDET'+xfield
-xxinf = 'I'+xinf
-xxdet = 'I'+xdet
-;for i = 0,nfield-1 do begin
-;    re = execute(xinf[i]+' = where(IIINF'+xfield[i]+',NINF'+xfield[i]+')')  ;; in field
-;    re = execute(xdet[i]+' = where(IIDET'+xfield[i]+',NDET'+xfield[i]+')')  ;; detections
-;endfor
-iidet = iidet_nst or iidet_xmm or iidet_cha
-idet = where(iidet,ndet)
-
+iiinf = 'IIINF'+xfield
+iidet = 'IIDET'+xfield
+idet = 'IDET'+xfield
 sav_vars = ['XFIELD','NFIELD','TEXP','SDST','PHOT_IND']
-sav_inds = ['XXINF','XXDET','XINF','XDET','IIDET','IDET']
+sav_inds = ['IIINF','IIDET','IDET']
 
 ;; Instrument variables: exposure time, flux, error
 tt = [['S','H','F']+'EXP', $
-      strarr(7)+'EP_ONTIME', $
+      strarr(7)+'PN_ONTIME', $
       strarr(6)+'ACIS_TIME']
 ff = [['S','H','F']+'BF', $
-      'SC_EP_'+['1','2','3','4','5','8','9']+'_FLUX', $
+      'PN_'+['1','2','3','4','5','8','9']+'_FLUX', $
       'FLUX_POWLAW_APER90_'+['B','H','M','S','U','W']]
 ee = ['E_'+['S','H','F']+'BF', $
-      'SC_EP_'+['1','2','3','4','5','8','9']+'_FLUX_ERR', $
+      'PN_'+['1','2','3','4','5','8','9']+'_FLUX_ERR', $
       'FLUX_POWLAW_APER90_LOLIM_'+['B','H','M','S','U','W']]
 ff_210 = ff+'_210'
 ee_210 = ee+'_210'
@@ -151,16 +142,23 @@ used_exp = tt[ixband_210]
 used_flx = ff_210[ixband_210]
 used_err = ee_210[ixband_210]
 used_cnv = 'CNV_210.'+(tag_names(cnv_210))[ixband_210]
+;; X-ray detections with chosen band
+iidet_210 = iidet+'_210'
+idet_210 = idet+'_210'
+
 for i = 0,nfield-1 do begin
     re = execute(xray_exp_210[i]+' = '+used_exp[i])
     re = execute(xray_flx_210[i]+' = '+used_flx[i])
     re = execute(xray_err_210[i]+' = '+used_err[i])
     re = execute(xray_cnv_210[i]+' = '+used_cnv[i])
+    re = execute(iidet_210[i]+' = '+xray_exp_210[i]+' gt 0. and '+xray_flx_210[i]+' gt 0. and '+xray_err_210[i]+' gt 0.')
+    re = execute(idet_210[i]+' = where('+iidet_210[i]+')')
 endfor
 
 sav_vars = [sav_vars,'XRAY_EXP_210','XRAY_FLX_210','XRAY_ERR_210','XRAY_CNV_210', $
                      xray_exp_210,xray_flx_210,xray_err_210,xray_cnv_210]
-sav_inds = [sav_inds,'IXBAND_210']
+sav_inds = [sav_inds,'IXBAND_210','IIDET_210','IDET_210', $
+                                   iidet_210, idet_210]
 
 ;; SAVE all variables
 sav_str = strjoin([sav_vars,sav_inds],',')
@@ -169,22 +167,25 @@ re = execute('save,'+sav_str+',/compress,file="xray_soft210.sav"')
 
 ;; check flux-by-flux
 if keyword_set(plt) then begin
+    ;; plot detections
+    iplt = where(iidet_nst_210 or iidet_xmm_210 or iidet_cha_210)
+    
     e = {sym_size:0.5,sym_filled:1,color:'dodger blue', $
          xr:[1e-17,1e-11],yr:[1e-17,1e-11],xlog:1,ylog:1, $
          aspect_ratio:1,dimension:[1200,400], $
-         buffer:0}
+         buffer:1}
     ;; Chandra vs. XMM
-    p = plot(flx_xmm_210[idet],flx_cha_210[idet],'S',_extra=e,layout=[3,1,1])
+    p = plot(flx_xmm_210[iplt],flx_cha_210[iplt],'S',_extra=e,layout=[3,1,1])
     p = plot(e.xr,e.yr,'--',/ov)
     p.xtitle = '$F_{XMM,2-10keV}(2-4.5 keV)$'
     p.ytitle = '$F_{Chandra,2-10keV}(2-7 keV)$'
     ;; NuSTAR vs. XMM
-    p = plot(flx_xmm_210[idet],flx_nst_210[idet],'S',_extra=e,layout=[3,1,2],/current)
+    p = plot(flx_xmm_210[iplt],flx_nst_210[iplt],'S',_extra=e,layout=[3,1,2],/current)
     p = plot(e.xr,e.yr,'--',/ov)
     p.xtitle = '$F_{XMM,2-10keV}(2-4.5 keV)$'
     p.ytitle = '$F_{NuSTAR,2-10keV}(3-8 keV)$'
     ;; NuSTAR vs. Chandra
-    p = plot(flx_cha_210[idet],flx_nst_210[idet],'S',_extra=e,layout=[3,1,3],/current)
+    p = plot(flx_cha_210[iplt],flx_nst_210[iplt],'S',_extra=e,layout=[3,1,3],/current)
     p = plot(e.xr,e.yr,'--',/ov)
     p.xtitle = '$F_{Chanrda,2-10keV}(2-7 keV)$'
     p.ytitle = '$F_{NuSTAR,2-10keV}(3-8 keV)$'
@@ -192,10 +193,6 @@ if keyword_set(plt) then begin
     t = text(0.5,0.9,'$\Gamma = $'+string(phot_ind,'(d3.1)'),alignment=0.5,/normal)
     ;; save!
     p.save,'compare_soft210_gamma_'+string(phot_ind,'(d3.1)')+'.png'
-    ;; gamma = 1.4, 
-    ;; exposure time vs exposure time
-    ;; flux limit vs flux limit
-    ;; hickox+06 (+07 ??) photon index function of x-ray flux
 endif
 
 

@@ -1,4 +1,4 @@
-PRO xray_detect_nustar
+PRO detect_nustar
 
 
 common _inf_fits

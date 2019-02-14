@@ -1,4 +1,4 @@
-PRO xray_field_chandra
+PRO field_chandra
 
 
 common _fits

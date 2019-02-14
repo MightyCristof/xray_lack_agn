@@ -1,4 +1,4 @@
-PRO xray_detect_wac
+PRO detect_wac
 
 
 common _inf_fits

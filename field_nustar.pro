@@ -1,4 +1,4 @@
-PRO xray_field_nustar
+PRO field_nustar
 
 
 common _fits

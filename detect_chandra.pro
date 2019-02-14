@@ -1,4 +1,4 @@
-PRO xray_detect_chandra
+PRO detect_chandra
                
 
 common _inf_fits
@@ -41,18 +41,14 @@ for i = 0,nvars-1 do begin
     re = execute(cha_vars[i]+'[isamp] = cha[imatch].'+tags[i])
 endfor
 
-;; upscale APER90 flux to 100% aperture area
-iflux = where(strmatch(cha_vars,'FLUX*90*'),nflux)
-for i = 0,nflux-1 do re = execute(cha_vars[iflux[i]]+' *= 1.1')
-
 ;; determine source detections (exposure time, flux, flux error)
 xband = (strsplit(tags[where(strmatch(tags,'FLUX_POWLAW_APER90_?'))],'FLUX_POWLAW_APER90_?',/extract,/regex)).ToArray()
 iix = 'II'+xband
 xband = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_?'))]
-xlimlo = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_HILIM_?'))]
-xlimhi = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_HILIM_?'))]
+xhilim = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_HILIM_?'))]
+xlolim = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_LOLIM_?'))]
 for i = 0,n_elements(xband)-1 do begin
-    xstr = xband[i]+' gt 0. and '+xlimlo[i]+' gt 0. and '+xlimhi[i]+' gt 0.'
+    xstr = xband[i]+' gt 0. and '+xlolim[i]+' gt 0. and '+xhilim[i]+' gt 0.'
     re = execute(iix[i]+' = '+xstr)
 endfor
 iixstr = '('+strjoin(iix," or ")+') and ACIS_TIME'

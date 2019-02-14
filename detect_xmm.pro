@@ -1,4 +1,4 @@
-PRO xray_detect_xmm
+PRO detect_xmm
 
 
 common _inf_fits
@@ -14,7 +14,7 @@ pth1 = '/Users/ccarroll/Research/surveys/XMM/3XMM_DR8cat_v1.0.fits'
 xmm = mrdfits(pth1,1)
 ;; use only sources without the possibility of spurious detection (SUM_FLAG == 0 or 1)
 ;; use only unique sources
-xmm = clean_detect_xmm(xmm)
+xmmc = clean_detect_xmm(xmm)
 
 spherematch,ra_inf,dec_inf,xmm.ra,xmm.dec,6./3600.,isamp,imatch,sep_xmm
 tags = ['OBS_ID','OBS_CLASS', $
@@ -22,13 +22,13 @@ tags = ['OBS_ID','OBS_CLASS', $
         'SC_RA','SC_DEC', $
         'EP_ONTIME','PN_ONTIME','M1_ONTIME','M2_ONTIME', $
         'SUM_FLAG','EP_FLAG','PN_FLAG','M1_FLAG','M2_FLAG','TSERIES','SPECTRA','HIGH_BACKGROUND', $
-        'SC_EP_1_FLUX','SC_EP_1_FLUX_ERR', $
-        'SC_EP_2_FLUX','SC_EP_2_FLUX_ERR', $
-        'SC_EP_3_FLUX','SC_EP_3_FLUX_ERR', $
-        'SC_EP_4_FLUX','SC_EP_4_FLUX_ERR', $
-        'SC_EP_5_FLUX','SC_EP_5_FLUX_ERR', $
-        'SC_EP_8_FLUX','SC_EP_8_FLUX_ERR', $
-        'SC_EP_9_FLUX','SC_EP_9_FLUX_ERR', $
+        'PN_1_FLUX','PN_1_FLUX_ERR', $
+        'PN_2_FLUX','PN_2_FLUX_ERR', $
+        'PN_3_FLUX','PN_3_FLUX_ERR', $
+        'PN_4_FLUX','PN_4_FLUX_ERR', $
+        'PN_5_FLUX','PN_5_FLUX_ERR', $
+        'PN_8_FLUX','PN_8_FLUX_ERR', $
+        'PN_9_FLUX','PN_9_FLUX_ERR', $
         'SC_HR1','SC_HR1_ERR','SC_HR2','SC_HR2_ERR','SC_HR3','SC_HR3_ERR','SC_HR4','SC_HR4_ERR' $
         ]
 nvars = n_elements(tags)
@@ -47,15 +47,15 @@ for i = 0,nvars-1 do begin
 endfor
 
 ;; determine source detections (exposure time, flux, flux error)
-xband = (strsplit(tags[where(strmatch(tags,'SC_EP_?_FLUX'))],'SC_EP_?_FLUX',/extract)).ToArray()
+xband = (strsplit(tags[where(strmatch(tags,'PN_?_FLUX'))],'PN_?_FLUX',/extract)).ToArray()
 iix = 'II'+xband
-xband = tags[where(strmatch(tags,'SC_EP_?_FLUX'))]
-xberr = tags[where(strmatch(tags,'SC_EP_?_FLUX_ERR'))]
+xband = tags[where(strmatch(tags,'PN_?_FLUX'))]
+xberr = tags[where(strmatch(tags,'PN_?_FLUX_ERR'))]
 for i = 0,n_elements(xband)-1 do begin
     xstr = xband[i]+' gt 0. and '+xberr[i]+' gt 0.'
     re = execute(iix[i]+' = '+xstr)
 endfor
-iixstr = '('+strjoin(iix,' or ')+') and EP_ONTIME'
+iixstr = '('+strjoin(iix,' or ')+') and PN_ONTIME'
 ;; boolean flag for valid detection in any band
 re = execute('iidet_xmm = '+iixstr)
 idet_xmm = where(iidet_xmm)
