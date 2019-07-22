@@ -1,31 +1,43 @@
 PRO detect_chandra
                
 
-common _inf_fits
-common _inf_cha
+common _fits
+nsrc = n_elements(ra)
 
 ;; Chandra Source Catalog 2
 pth1 = '/Users/ccarroll/Research/surveys/Chandra/chandra-source-catalog-2.fits'
 
-;; running for "Luminous AGN Lacking X-rays"
-
 ;; DETECTIONS
 ;; load Chandra Source Catalog 2
 cha = mrdfits(pth1,1)
-;; use reliable source detections
-cha = clean_detect_chandra(cha)
 
-spherematch,ra_inf,dec_inf,cha.ra,cha.dec,6./3600.,isamp,imatch,sep_cha
-tags = ['NAME','RA','DEC', $
-        ;'CONF_FLAG','PILEUP_FLAG','SAT_SRC_FLAG', $
-        'FLUX_POWLAW_APER90_B','FLUX_POWLAW_APER90_LOLIM_B','FLUX_POWLAW_APER90_HILIM_B', $
-        'FLUX_POWLAW_APER90_H','FLUX_POWLAW_APER90_LOLIM_H','FLUX_POWLAW_APER90_HILIM_H', $
-        'FLUX_POWLAW_APER90_M','FLUX_POWLAW_APER90_LOLIM_M','FLUX_POWLAW_APER90_HILIM_M', $
-        'FLUX_POWLAW_APER90_S','FLUX_POWLAW_APER90_LOLIM_S','FLUX_POWLAW_APER90_HILIM_S', $
-        'FLUX_POWLAW_APER90_U','FLUX_POWLAW_APER90_LOLIM_U','FLUX_POWLAW_APER90_HILIM_U', $
-        'FLUX_POWLAW_APER90_W','FLUX_POWLAW_APER90_LOLIM_W','FLUX_POWLAW_APER90_HILIM_W', $
+;; add error column
+cat_tags = tag_names(cha)
+xband = ['B','H','M','S','U','W']
+xbflx = cat_tags[where(strmatch(cat_tags,'FLUX_POWLAW_APER90_?'))]
+xhilim = cat_tags[where(strmatch(cat_tags,'FLUX_POWLAW_APER90_HILIM_?'))]
+xlolim = cat_tags[where(strmatch(cat_tags,'FLUX_POWLAW_APER90_LOLIM_?'))]
+xberr = xbflx+'_ERR'
+for i = 0,n_elements(xband)-1 do begin
+    re = execute(xberr[i]+' = median([[cha.'+xbflx[i]+'-cha.'+xlolim[i]+'],[cha.'+xhilim[i]+'-cha.'+xbflx[i]+']],/even,dim=2)')
+    re = execute('ifin = where(finite('+xberr[i]+'),complement=inan,ncomplement=nanct)')
+    if (nanct gt 0.) then re = execute(xberr[i]+'[inan] = 0.')
+    re = execute('struct_add_field,cha,xberr[i],'+xberr[i])
+endfor
+
+;; match to sample sources
+spherematch,ra,dec,cha.ra,cha.dec,6./3600.,isamp,imatch,sep_cha
+
+tags = ['NAME','RA','DEC','ACIS_TIME', $
+        'FLUX_POWLAW_APER90_B','FLUX_POWLAW_APER90_B_ERR', $
+        'FLUX_POWLAW_APER90_H','FLUX_POWLAW_APER90_H_ERR', $
+        'FLUX_POWLAW_APER90_M','FLUX_POWLAW_APER90_M_ERR', $
+        'FLUX_POWLAW_APER90_S','FLUX_POWLAW_APER90_S_ERR', $
+        'FLUX_POWLAW_APER90_U','FLUX_POWLAW_APER90_U_ERR', $
+        'FLUX_POWLAW_APER90_W','FLUX_POWLAW_APER90_W_ERR', $
         'HARD_HS','HARD_HS_LOLIM','HARD_HS_HILIM', $
-        'ACIS_TIME' $
+        'DITHER_WARNING_FLAG','PILEUP_FLAG','SAT_SRC_FLAG','VAR_FLAG', $
+        'STREAK_SRC_FLAG','VAR_INTER_HARD_FLAG','MAN_ADD_FLAG' $
         ]
 nvars = n_elements(tags)
 
@@ -37,27 +49,24 @@ cha_vars[ipos] = tags[ipos]+'_CHA'
 ;; declare and initialize cha variables, matched to main sample
 for i = 0,nvars-1 do begin
     re = execute('type = typename(cha.'+tags[i]+')')
+    if (type eq 'LONG64') then type = 'L64'
     re = execute(cha_vars[i]+' = make_array(nsrc,/'+type+')')
     re = execute(cha_vars[i]+'[isamp] = cha[imatch].'+tags[i])
 endfor
 
-;; determine source detections (exposure time, flux, flux error)
-xband = (strsplit(tags[where(strmatch(tags,'FLUX_POWLAW_APER90_?'))],'FLUX_POWLAW_APER90_?',/extract,/regex)).ToArray()
-iix = 'II'+xband
-xband = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_?'))]
-xhilim = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_HILIM_?'))]
-xlolim = tags[where(strmatch(tags,'FLUX_POWLAW_APER90_LOLIM_?'))]
-for i = 0,n_elements(xband)-1 do begin
-    xstr = xband[i]+' gt 0. and '+xlolim[i]+' gt 0. and '+xhilim[i]+' gt 0.'
-    re = execute(iix[i]+' = '+xstr)
-endfor
-iixstr = '('+strjoin(iix," or ")+') and ACIS_TIME'
-;; boolean flag for valid detection in any band
-re = execute('iidet_cha = '+iixstr)
+;; convert 90% aperture flux to 100%
+aper90 = tags[where(strmatch(cha_vars,'*APER90*'),naper)]
+if (naper gt 0.) then for i = 0,naper-1 do re = execute(aper90[i]+' *= 1.1')
+
+
+;; boolean flag for detection in CSC2
+iidet_cha = bytarr(nsrc)
+iidet_cha[isamp] = 1
 idet_cha = where(iidet_cha)
 
+;; save data
 cha_str = 'CHA,IIDET_CHA,IDET_CHA,'+strjoin(cha_vars,',')
-re = execute('save,'+cha_str+',/compress,file="xdetect_cha.sav"')
+re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
 
 
 END

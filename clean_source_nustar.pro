@@ -1,26 +1,34 @@
-FUNCTION clean_source_nustar, in_data
+PRO clean_source_nustar
 
 
-data = in_data
+common _det_nst
 
-;; remove Galactic Center
-ig = where(data.field ne 'GalCen',/null)
-data = data[ig]
-;; exposure > 0 (Fexp = Sexp + Hexp)
-ig = where(data.fexp gt 0.,/null)
-data = data[ig]
-;; detections and not upper limits
-ig = where(data.fbf gt 0. and data.e_fbf gt 0.,/null)
-data = data[ig]
-;; S/N doesn't matter when only interested in detections
-;ig = where(data.fbf/data.e_fbf gt 2.,/null)
-;data = data[ig]
+vars = scope_varname(common='_det_nst')
 
-;; sort by exposure time
-isort = sort(data.fexp)
-data = data[isort]
+;; exposure > 0
+xbexp = vars[where(strmatch(vars,'?EXP'))]
+time_str = strjoin(+xbexp+' gt 0.',' or ')
+re = execute('iitime = '+time_str)
 
-return, data
+;; photometry exists in at least one band
+xbflx = vars[where(strmatch(vars,'?BF'))]
+xberr = vars[where(strmatch(vars,'E_?BF'))]
+phot_str = strjoin('('+xbflx+' gt 0. and '+xberr+' gt 0.)',' or ')
+re = execute('iiphot = '+phot_str)
+
+;; passes all quality flags
+;iipass = 
+
+;; clean photometry
+iiclean_nst = iitime and iiphot; and iipass
+;; removed sources
+iiflag_nst = iidet_nst and ~iiclean_nst
+save,iiclean_nst,iiflag_nst,file='cleaned_nst.sav'
 
 
 END
+
+
+
+
+

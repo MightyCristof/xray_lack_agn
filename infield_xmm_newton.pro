@@ -1,4 +1,4 @@
-PRO field_xmm
+PRO infield_xmm_newton
 
 
 common _fits   
@@ -20,18 +20,20 @@ iimode = strmatch(arch.pn_mode,'*FLG*',/fold) or $                          ;; e
          strmatch(arch.pn_mode,'*EFF*',/fold)
 arch = arch[where(iimode)]
 
-;; XMM MOS FOV is ~33'x33'; use PN FOV inscribed circle--being conservative
-fov = 26.4/2./60.
-spherematch,ra,dec,arch.ra,arch.dec,fov,isamp,ifield,sep_cntr,maxmatch=0
+;; XMM PN MOS FOV is ~27.5'x27.5'; use FOV inscribed circle--being conservative
+;; https://heasarc.gsfc.nasa.gov/docs/xmm/xmm.html
+fov_xmm = 27.5*60./2.
+
+spherematch,ra,dec,arch.ra,arch.dec,fov_xmm/3600.,isamp,ifield,sep_cntr,maxmatch=0
 ;; tag main sample sources as "in field"
 
-iiinf_xmm_field = bytarr(nsrc)            ;; in field
-texp_xmm_field = dblarr(nsrc)         ;; exposure time (ontime)
-sdst_xmm_field = dblarr(nsrc)         ;; separation distance from field center
-iiinf_xmm_field[isamp] = 1
-texp_xmm_field[isamp] = arch[ifield].duration
-sdst_xmm_field[isamp] = sep_cntr
-save,iiinf_xmm_field,texp_xmm_field,sdst_xmm_field,file='xfield_xmm.sav'
+iiinf_xmm = bytarr(nsrc)            ;; in field
+texp_xmm = dblarr(nsrc)         ;; exposure time (ontime)
+sdst_xmm = dblarr(nsrc)         ;; separation distance from field center
+iiinf_xmm[isamp] = 1
+texp_xmm[isamp] = arch[ifield].duration
+sdst_xmm[isamp] = sep_cntr*3600.            ;; convert to arcsec
+save,iiinf_xmm,texp_xmm,sdst_xmm,fov_xmm,file='infield_xmm.sav'
 
 
 END

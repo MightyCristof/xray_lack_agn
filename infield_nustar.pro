@@ -1,11 +1,11 @@
-PRO field_nustar
+PRO infield_nustar
 
 
 common _fits
 
 
 ;; Combined NuSTAR Fields
-pth1 = '/Users/ccarroll/Research/surveys/NuSTAR/nustar_fields.fits'
+pth1 = '/Users/ccarroll/Research/surveys/NuSTAR/nustars.fits'
 
 ;; OBSERVATIONS
 ;; *******************************
@@ -39,9 +39,10 @@ pth1 = '/Users/ccarroll/Research/surveys/NuSTAR/nustar_fields.fits'
     src_nstr_dist = strarr(nsrc)
     ;; initial rough cut on NuSTAR field centers using spherematch, 
     ;; not necessary to do one object at a time
-    nufov = 13.
-    hypot = sqrt(2.*nufov^2)
-    spherematch,ra,dec,xra,xdec,hypot/60.,is,ix,sepnu,maxmatch=0
+    ;; https://heasarc.gsfc.nasa.gov/docs/nustar/nustar.html
+    fov_nst = 13.*60./2.
+
+    spherematch,ra,dec,xra,xdec,fov_nst/3600.,is,ix,sepnu,maxmatch=0
     isu = is[uniq(is,sort(is))]
     ixu = ix[uniq(ix,sort(ix))]
     ;; Step through each test source
@@ -76,23 +77,22 @@ pth1 = '/Users/ccarroll/Research/surveys/NuSTAR/nustar_fields.fits'
 ;; *******************************
 
 ;; prep NuSTAR fields (multiple pointings)
-iiinf_nst_field = byte(src_infield)
-texp_nst_field = dblarr(nsrc)
-sdst_nst_field = dblarr(nsrc)
-inst = where(iiinf_nst_field,nnst)
+iiinf_nst = byte(src_infield)
+texp_nst = dblarr(nsrc)
+sdst_nst = dblarr(nsrc)
+inst = where(iiinf_nst,nnst)
 for i = 0,nnst-1 do begin
     temp_time = double(strsplit(src_nstr_expt[inst[i]],',',/extract))
     temp_dist = double(strsplit(src_nstr_dist[inst[i]],',',/extract))
     ;; take the observation where source is closest to pointing center
-    sdst_nst_field[inst[i]] = min(temp_dist,imin)
-    texp_nst_field[inst[i]] = temp_time[imin]
+    sdst_nst[inst[i]] = min(temp_dist,imin)
+    texp_nst[inst[i]] = temp_time[imin]
     ;; take the observation where source has longest exposure time
     ;expt_nst[inus[i]] = max(temp_time,imax)
     ;sdst_nst[inus[i]] = temp_dist[imax]
 endfor
 
-save,iiinf_nst_field,texp_nst_field,sdst_nst_field, $
-     /compress,filename='xfield_nst.sav' 
+save,iiinf_nst,texp_nst,sdst_nst,fov_nst,/compress,filename='infield_nst.sav' 
 
 
 END

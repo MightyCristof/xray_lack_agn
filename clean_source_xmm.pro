@@ -1,58 +1,36 @@
-FUNCTION clean_source_xmm, in_data
+PRO clean_source_xmm, in_data
 
 
-data = in_data
+common _det_xmm
 
-;; no spurious fields
-ig = where(data.sum_flag eq 0 or data.sum_flag eq 1,/null)
-data = data[ig]
-;; unique source
-ig = uniq(data.srcid,sort(data.srcid))
-data = data[ig]
+vars = scope_varname(common = '_det_xmm')
+
+
 ;; exposure > 0
-ig = where(data.pn_ontime gt 0.)
-data = data[ig]
-;; full CCD chip readout - SCIENCE mode
-tags = tag_names(data)
-imode = where(strmatch(tags,'*SUBMODE*'))
-mode_str = strjoin('strmatch(DATA.'+tags[imode]+',"*Full*")',' and ')
-re = execute('ig = where('+mode_str+')')
-data = data[ig]
-;; flux > 0, error > 0
-iflux = where(strmatch(tags,'PN_?_FLUX'))
-ierr = where(strmatch(tags,'PN_?_FLUX_ERR'))
-flux_str = strjoin('(DATA.'+tags[iflux]+' gt 0. and DATA.'+tags[ierr]+' gt 0.)',' or ')
-re = execute('ig = where('+flux_str+')')
-data = data[ig]
+iitime = PN_ONTIME gt 0.
 
-;ig = where()
-;; exposure > 0
-;ig = where(data.ep_ontime gt 0.,/null)
-;data = data[ig]
-;ig = where((data.sc_ep_4_flux gt 0. and data.sc_ep_4_flux_err gt 0.) or (data.sc_ep_5_flux gt 0. and data.sc_ep_5_flux_err gt 0.),/null)
-;data = data[ig]
-;ig = where((data.sc_ep_4_flux/data.sc_ep_4_flux_err gt 2.) or (data.sc_ep_5_flux/data.sc_ep_5_flux_err gt 2.),/null)
-;data = data[ig]
+;; photometry exists in at least one band
+xbflx = vars[where(strmatch(vars,'PN_?_FLUX'))]
+xberr = vars[where(strmatch(vars,'PN_?_FLUX_ERR'))]
+phot_str = strjoin('('+xbflx+' gt 0. and '+xberr+' gt 0.)',' or ')
+re = execute('iiphot = '+phot_str)
 
-;; sort by exposure time
-isort = sort(data.pn_ontime)
-data = data[isort]
+;; passes all quality flags
+iipass = (SUM_FLAG EQ 0 OR SUM_FLAG EQ 1) and $      ;; no spurious fields
+          strmatch(PN_SUBMODE,'*Full*')              ;; full CCD chip readout "SCIENCE MODE"
 
-;; create EP_4+EP_5 channel
-;inon = where(data.sc_ep_4_flux eq 0. or data.sc_ep_5_flux eq 0.)
-;new_epf = data.sc_ep_4_flux + data.sc_ep_5_flux
-;new_epe = sqrt(data.sc_ep_4_flux_err^2 + data.sc_ep_5_flux_err^2)
-;new_epf[inon] = 0.
-;new_epe[inon] = 0.
-;struct_add_field,data,'SC_EP_45_FLUX',new_epf
-;struct_add_field,data,'SC_EP_45_FLUX_ERR',new_epe
+;; unique source (only 17 sources)
+;iu = uniq(SRCID,sort(SRCID))
 
-return, data
+
+;; clean photometry
+iiclean_xmm = iitime and iiphot and iipass
+;; removed sources
+iiflag_xmm = iidet_xmm and ~iiclean_xmm
+save,iiclean_xmm,iiflag_xmm,file='cleaned_xmm.sav'
 
 
 END
-
-
 
 
 
