@@ -41,6 +41,8 @@ pth1 = '/Users/ccarroll/Research/surveys/NuSTAR/nustars.fits'
     ;; not necessary to do one object at a time
     ;; https://heasarc.gsfc.nasa.gov/docs/nustar/nustar.html
     fov_nst = 13.*60./2.
+    hypot = sqrt(2.*fov_nst^2.)
+    fov_nst = hypot
 
     spherematch,ra,dec,xra,xdec,fov_nst/3600.,is,ix,sepnu,maxmatch=0
     isu = is[uniq(is,sort(is))]
