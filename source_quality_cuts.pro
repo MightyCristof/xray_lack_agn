@@ -79,13 +79,9 @@ re = execute('iidet = '+det_str)
 ;; combined cleaned X-ray detections, sample-cleaned catalog matches
 clean_str = strjoin('IICLEAN'+xfield,' or ')
 re = execute('iiclean = '+clean_str)
-;; combined flagged (removed) X-ray detections, sample-removed catalog matches
-flag_str = strjoin('IIFLAG'+xfield,' or ')
-re = execute('iiflag = '+flag_str)
-
 
 sav_vars = [sav_vars]
-sav_inds = [sav_inds,'IIAGN','IIDET','IICLEAN','IIFLAG']
+sav_inds = [sav_inds,'IIAGN','IIDET','IICLEAN']
 
 
 sav_str = strjoin([sav_vars,sav_inds],',')
