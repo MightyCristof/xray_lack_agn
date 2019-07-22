@@ -49,9 +49,8 @@ ontime = nst_arch.ontime_a
 ;; NuSTAR FOV; FOV inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/nustar/nustar.html
 fov_nst = 13.*60./2.
-
-
-
+hypot = sqrt(2*fov_nst^2.)
+fov_nst = hypot
 
 for i = 0,n_elements(in_files)-1 do begin
     print, 'WORKING FIELD: '+in_files[i]
@@ -93,7 +92,6 @@ for i = 0,n_elements(in_files)-1 do begin
     src_infield = lonarr(nsrc)
     src_nstr_expt  = strarr(nsrc)
     src_nstr_dist = strarr(nsrc)
-    fov_nst = sqrt(2*(13.*60./2.)^2)
     spherematch,obs.ra,obs.dec,xra,xdec,fov_nst/3600.,is,ix,sepnu,maxmatch=0
     if (is[0] ne -1) then begin
         isu = is[uniq(is,sort(is))]
