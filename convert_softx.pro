@@ -19,9 +19,12 @@ sdst = 'SDST'+xfield
 
 ;; number of sources in X-ray fields
 nsrc = n_elements(ra)
-;iiinf = 'IIINF'+xfield
-;iidet = 'IIDET'+xfield
-;idet = 'IDET'+xfield
+iiinf = strjoin('IIINF'+xfield,' or ')
+re = execute('iiinf = '+iiinf)
+if (n_elements(where(iiinf)) ne nsrc) then begin
+    print, 'NUMBER OF IN-FIELD SOURCES DOES NOT MATCH'
+    stop
+endif
 
 ;; Instrument variables: exposure time, flux, error
 tt = {CHA:strarr(6)+'ACIS_TIME', $
@@ -38,7 +41,7 @@ nxband = intarr(nfield)
 for i = 0,nfield-1 do nxband[i] = n_elements(ff.(i))
 
 sav_vars = ['XFIELD','NFIELD','TEXP','SDST','PHOT_IND','NSRC','TT','FF','EE','NXBAND']
-sav_inds = []
+sav_inds = ['IIINF']
 
 
 ;; Flux conversions

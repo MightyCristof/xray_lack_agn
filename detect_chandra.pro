@@ -2,6 +2,7 @@ PRO detect_chandra
                
 
 common _fits
+common _inf_cha
 nsrc = n_elements(ra)
 
 ;; Chandra Source Catalog 2

@@ -12,8 +12,8 @@ cha_pth = '/Users/ccarroll/Research/surveys/Chandra/*master*.fits'
 ;; OBSERVATIONS
 ;; use only archived sources
 cha_arch = mrdfits(cha_pth,1)
-cha_arch = cha_arch[where(cha_arch.status eq 'ARCHIVED' or cha_arch.status eq 'OBSERVED')]
-cha_arch = cha_arch[where(cha_arch.detector eq 'ACIS-I')]
+cha_arch = cha_arch[where(cha_arch.status eq 'ARCHIVED' or cha_arch.status eq 'OBSERVED',/null)]
+cha_arch = cha_arch[where(cha_arch.detector eq 'ACIS-I',/null)]
 ;; ACIS-I FOV is 16'x16'; use inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html
 fov_cha = 16.*60./2.
@@ -24,13 +24,13 @@ xmm_pth = '/Users/ccarroll/Research/surveys/XMM/*master*.fits'
 ;; OBSERVATIONS
 ;; use only archived sources (possibly use )
 xmm_arch = mrdfits(xmm_pth,1)
-xmm_arch = xmm_arch[where(xmm_arch.status eq 'ARCHIVED' or xmm_arch.status eq 'OBSERVED')]  ;; observed sources
-xmm_arch = xmm_arch[where(xmm_arch.pn_time gt 0.)]                                      ;; ensure PN observation
-xmm_arch = xmm_arch[where(xmm_arch.duration gt 0.)]                                     ;; sanity check
+xmm_arch = xmm_arch[where(xmm_arch.status eq 'ARCHIVED' or xmm_arch.status eq 'OBSERVED',/null)]  ;; observed sources
+xmm_arch = xmm_arch[where(xmm_arch.pn_time gt 0.,/null)]                                      ;; ensure PN observation
+xmm_arch = xmm_arch[where(xmm_arch.duration gt 0.,/null)]                                     ;; sanity check
 iimode = strmatch(xmm_arch.pn_mode,'*FLG*',/fold) or $                          ;; ensure Large-Window or Full-Frame mode
          strmatch(xmm_arch.pn_mode,'*FF*',/fold) or $
          strmatch(xmm_arch.pn_mode,'*EFF*',/fold)
-xmm_arch = xmm_arch[where(iimode)]
+xmm_arch = xmm_arch[where(iimode,/null)]
 ;; XMM MOS FOV is ~33'x33'; use inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/xmm/xmm.html
 fov_xmm = 27.5*60./2.
@@ -41,7 +41,7 @@ nst_pth = '/Users/ccarroll/Research/surveys/NuSTAR/*master*.fits'
 ;; OBSERVATIONS
 ;; use only ACIS-I SCIENCE
 nst_arch = mrdfits(nst_pth,1)
-nst_arch = nst_arch[where(nst_arch.observation_mode eq 'SCIENCE')]
+nst_arch = nst_arch[where(nst_arch.observation_mode eq 'SCIENCE',/null)]
 xra = nst_arch.ra
 xdec = nst_arch.dec
 rot_angle = nst_arch.roll_angle

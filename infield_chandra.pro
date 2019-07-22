@@ -12,8 +12,8 @@ nsrc = n_elements(ra)
 
 ;; use only archived sources
 arch = mrdfits(pth1,1)
-arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED')]
-arch = arch[where(arch.detector eq 'ACIS-I')]
+arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED',/null)]
+arch = arch[where(arch.detector eq 'ACIS-I',/null)]
 
 ;; ACIS-I FOV is 16'x16'
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html

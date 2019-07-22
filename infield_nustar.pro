@@ -25,7 +25,7 @@ pth1 = '/Users/ccarroll/Research/surveys/NuSTAR/nustars.fits'
     ontime = arch.ontime_a
     ;; We only require ACIS imaging pointings so...(remove the ones that aren't ACIS-I; rather than sub-select; 
     ;; for NuSTAR, select just the science subset
-    scien=where(instrument eq 'SCIENCE',complement=ibad)  ;  SCIENCE instead of 'ACIS-I'
+    scien=where(instrument eq 'SCIENCE',complement=ibad,/null)  ;  SCIENCE instead of 'ACIS-I'
     remove,ibad,obsid,xra,xdec,rot_angle,instrument,ontime  ; , grating,seq_num,
     nnstr = n_elements(scien)  ; go from 4222 to 2065
     ;; ==========================================================

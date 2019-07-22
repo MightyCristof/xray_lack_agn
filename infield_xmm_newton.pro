@@ -12,13 +12,13 @@ nsrc = n_elements(ra)
 
 ;; use only archived sources (possibly use )
 arch = mrdfits(pth1,1)
-arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED')]  ;; observed sources
-arch = arch[where(arch.pn_time gt 0.)]                                      ;; ensure PN observation
-arch = arch[where(arch.duration gt 0.)]                                     ;; sanity check
+arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED',/null)]  ;; observed sources
+arch = arch[where(arch.pn_time gt 0.,/null)]                                      ;; ensure PN observation
+arch = arch[where(arch.duration gt 0.,/null)]                                     ;; sanity check
 iimode = strmatch(arch.pn_mode,'*FLG*',/fold) or $                          ;; ensure Large-Window or Full-Frame mode
          strmatch(arch.pn_mode,'*FF*',/fold) or $
          strmatch(arch.pn_mode,'*EFF*',/fold)
-arch = arch[where(iimode)]
+arch = arch[where(iimode,/null)]
 
 ;; XMM PN MOS FOV is ~27.5'x27.5'; use FOV inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/xmm/xmm.html
