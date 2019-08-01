@@ -2,6 +2,7 @@ PRO detect_nustar
 
 
 common _fits
+common _inf_nst
 nsrc = n_elements(ra)
 
 ;; Combined NuSTAR Fields
@@ -34,9 +35,19 @@ iidet_nst = bytarr(nsrc)
 iidet_nst[isamp] = 1
 idet_nst = where(iidet_nst)
 
-;; save data
+;; save detection data
 nst_str = 'NST,IIDET_NST,IDET_NST,'+strjoin(nst_vars,',')
 re = execute('save,'+nst_str+',/compress,file="detections_nst.sav"')
+
+;; update in-field data
+inew = where(iidet_nst eq 1 and iiinf_nst eq 0,ctnew)
+if (ctnew gt 0) then begin
+    iiinf_nst[inew] = 1
+    texp_nst[inew] = -9999.
+    sdst_nst[inew] = -9999.
+    inf_str = strjoin(scope_varname(common='_INF_NST'),',')
+    re = execute('save,'+inf_str+',file="infield_nst.sav"')
+endif
 
 
 END

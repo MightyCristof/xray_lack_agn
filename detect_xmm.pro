@@ -2,6 +2,7 @@ PRO detect_xmm
 
 
 common _fits
+common _inf_xmm
 nsrc = n_elements(ra)
 
 ;; XMM DR8 Source Catalog
@@ -47,9 +48,19 @@ iidet_xmm = bytarr(nsrc)
 iidet_xmm[isamp] = 1
 idet_xmm = where(iidet_xmm)
 
-;; save data
+;; save detection data
 xmm_str = 'XMM,IIDET_XMM,IDET_XMM,'+strjoin(xmm_vars,',')
 re = execute('save,'+xmm_str+',/compress,file="detections_xmm.sav"')
+
+;; update in-field data
+inew = where(iidet_xmm eq 1 and iiinf_xmm eq 0,ctnew)
+if (ctnew gt 0) then begin
+    iiinf_xmm[inew] = 1
+    texp_xmm[inew] = -9999.
+    sdst_xmm[inew] = -9999.
+    inf_str = strjoin(scope_varname(common='_INF_XMM'),',')
+    re = execute('save,'+inf_str+',file="infield_xmm.sav"')
+endif
 
 
 END

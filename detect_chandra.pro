@@ -65,9 +65,19 @@ iidet_cha = bytarr(nsrc)
 iidet_cha[isamp] = 1
 idet_cha = where(iidet_cha)
 
-;; save data
+;; save detection data
 cha_str = 'CHA,IIDET_CHA,IDET_CHA,'+strjoin(cha_vars,',')
 re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
+
+;; update in-field data
+inew = where(iidet_cha eq 1 and iiinf_cha eq 0,ctnew)
+if (ctnew gt 0) then begin
+    iiinf_cha[inew] = 1
+    texp_cha[inew] = -9999.
+    sdst_cha[inew] = -9999.
+    inf_str = strjoin(scope_varname(common='_INF_CHA'),',')
+    re = execute('save,'+inf_str+',file="infield_cha.sav"')
+endif
 
 
 END
