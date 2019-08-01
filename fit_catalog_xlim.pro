@@ -53,8 +53,7 @@ endfor
 
 for f = 0,nfield-1 do re = execute(cat_lim[f]+' = xray_flim('+cat_exp[f]+','+cat_flx[f]+','+cat_err[f]+')')
 
-sav_vars = ['CAT_EXP','CAT_FLX','CAT_ERR','CAT_LIM', $
-            cat_exp,cat_flx,cat_err,cat_lim]
+sav_vars = [cat_exp,cat_flx,cat_err,cat_lim]
 sav_inds = []
 
 sav_str = strjoin([sav_vars,sav_inds],',')

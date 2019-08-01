@@ -83,14 +83,13 @@ cat_gamma = [2.0,1.8,1.8]
 lx = 'LX'+xfield
 for i = 0,nfield-1 do begin
     re = execute(lx[i]+' = dblarr(nsrc)')
-    re = execute('idet = where(iidet'+xfield[i]+',ctdet)')
+    re = execute('idet = where(IIDET'+xfield[i]+',ctdet)')
     if (ctdet eq 0.) then continue
-    re = execute(lx[i]+'[idet] = alog10((4.*!const.pi*dl2[idet])*('+xray_flx[i]+'[idet]*(1+z[idet])^(cat_gamma[i]-2.)))>0.')
+    re = execute(lx[i]+'[idet] = alog10((4.*!const.pi*dl2[idet])*(FLX'+xfield[i]+'[idet]*(1+z[idet])^(cat_gamma[i]-2.)))>0.')
 endfor
 
 
-sav_vars = [sav_vars,'CAT_GAMMA','LX', $
-                                 lx]
+sav_vars = [sav_vars,'CAT_GAMMA',lx]
 sav_inds = [sav_inds]
 
 
@@ -107,13 +106,12 @@ for i = 0,nfield-1 do begin
     re = execute(lxlim[i]+' = dblarr(nsrc)')
     re = execute(flim_cs[i]+' = dblarr(degr[i])')
     re = execute('isrc = where(iiinf'+xfield[i]+')')
-    re = execute(flim[i]+'[isrc] = extrapolate_flim('+cat_lim[i]+','+cat_exp[i]+','+texp[i]+'[isrc],degr[i],FLIM_CS='+flim_cs[i]+')')
-    re = execute(lxlim[i]+'[isrc] = alog10(4.*!const.pi*dl2[isrc]*'+flim[i]+'[isrc])>0.')
+    re = execute(flim[i]+'[isrc] = extrapolate_flim(CAT_LIM'+xfield[i]+',CAT_EXP'+xfield[i]+',TEXP'+xfield[i]+'[isrc],degr[i],FLIM_CS='+flim_cs[i]+')')
+    re = execute(lxlim[i]+'[isrc] = alog10(4.*!const.pi*dl2[isrc]*FLIM'+xfield[i]+'[isrc])>0.')
 endfor
 
 
-sav_vars = [sav_vars,'FLIM','LXLIM','FLIM_CS','DEGR', $
-                     flim,lxlim,flim_cs]
+sav_vars = [sav_vars,flim,lxlim,flim_cs,'DEGR']
 sav_inds = [sav_inds]
 
 

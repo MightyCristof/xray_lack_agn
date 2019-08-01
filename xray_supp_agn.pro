@@ -5,7 +5,8 @@ PRO xray_supp_agn, INFIELD = infield, $
                    LUM = lum, $
                    CLEAN = clean, $
                    QUALITY = quality, $
-                   RATIO = ratio
+                   RATIO = ratio, $
+                   NHDIST = nhdist
 
 
 nkeys = n_elements(infield) + $
@@ -51,7 +52,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 ;; X-ray conversion to 2-10keV
 if keyword_set(softx) then begin
     gmma = 1.8
-    convert_softx,gmma,/plt
+    convert_softx,gmma;,/plt
     nkeys--
 endif
 load_vars,'softx_conversions.sav','_softx'
@@ -72,7 +73,7 @@ if keyword_set(lum) then begin
     agn_xray_luminosity,/dered,/combine
     nkeys--
 endif
-load_vars,'src_luminosity.sav','_agn_lum'
+load_vars,'src_luminosity.sav','_agnlum'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; clean X-ray sources
@@ -80,6 +81,7 @@ if keyword_set(clean) then begin
     clean_source_chandra
     clean_source_xmm
     clean_source_nustar
+    nkeys--
 endif
 load_vars,'cleaned_cha.sav','_clean_cha'
 load_vars,'cleaned_xmm.sav','_clean_xmm'
@@ -89,15 +91,25 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 ;; pass quality control
 if keyword_set(quality) then begin
     source_quality_cuts
+    nkeys--
 endif
 load_vars,'quality_src.sav','_quality'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; pass quality control
+;; luminosity ratio LX/LXIR
 if keyword_set(ratio) then begin
     compute_luminosity_ratio
+    nkeys--
 endif
-load_vars,'lum_ratio.sav','_lratio'
+load_vars,'lum_ratio.sav','_lum_ratio'
+if (nkeys eq 0) then GOTO, NO_KEYS
+
+;; raw NH distribution
+if keyword_set(nhdist) then begin
+    compute_nh_distribution
+    nkeys--
+endif
+load_Vars,'nh_dist.sav','_nhdist'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 

@@ -14,8 +14,6 @@ common _det_nst
 ;; X-ray fields
 xfield = '_'+['CHA','XMM','NST']
 nfield = n_elements(xfield)
-texp = 'TEXP'+xfield
-sdst = 'SDST'+xfield
 
 ;; number of sources in X-ray fields
 nsrc = n_elements(ra)
@@ -40,7 +38,7 @@ ee = {CHA:'FLUX_POWLAW_APER90_'+['B','H','M','S','U','W']+'_ERR', $
 nxband = intarr(nfield)
 for i = 0,nfield-1 do nxband[i] = n_elements(ff.(i))
 
-sav_vars = ['XFIELD','NFIELD','TEXP','SDST','PHOT_IND','NSRC','TT','FF','EE','NXBAND']
+sav_vars = ['XFIELD','NFIELD','PHOT_IND','NSRC','TT','FF','EE','NXBAND']
 sav_inds = ['IIINF']
 
 
@@ -135,9 +133,7 @@ for f = 0,nfield-1 do begin
     endfor
 endfor
 
-sav_vars = [sav_vars,'XCONV','FF_210','EE_210', $
-                             ff_210.cha,ff_210.xmm,ff_210.nst, $
-                             ee_210.cha,ee_210.xmm,ee_210.nst]
+sav_vars = [sav_vars,'XCONV','FF_210','EE_210']
 sav_inds = [sav_inds]
 
 
@@ -171,8 +167,7 @@ for f = 0,nfield-1 do begin
     endfor
 endfor
 
-sav_vars = [sav_vars,'XRAY_EXP','XRAY_FLX','XRAY_ERR','XRAY_CNV', $
-                     xray_exp,xray_flx,xray_err,xray_cnv]
+sav_vars = [sav_vars,xray_exp,xray_flx,xray_err,xray_cnv]
 sav_inds = [sav_inds,'IXBAND']
 
 ;; SAVE all variables

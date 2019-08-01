@@ -12,7 +12,7 @@ common _det_wac
 common _softx      
 common _fluxlim    
 common _comp       
-common _agn_lum    
+common _agnlum    
 common _clean_cha
 common _clean_xmm
 common _clean_nst
@@ -28,43 +28,33 @@ lldet = 'LLDET'+xfield
 lldrm = 'LLDRM'+xfield
 llnon = 'LLNON'+xfield
 llnrm = 'LLNRM'+xfield
-for i = 0,nfield-1 do begin
-    re = execute(lldet[i]+' = dblarr(nsrc)-9999.')
-    re = execute(lldrm[i]+' = dblarr(nsrc)-9999.')
-    re = execute(llnon[i]+' = dblarr(nsrc)-9999.')
-    re = execute(llnrm[i]+' = dblarr(nsrc)-9999.')
-    re = execute('if (n_elements(where(IIAGN_DET'+xfield[i]+',/null)) gt 0) then '+lldet[i]+'[where(IIAGN_DET'+xfield[i]+')] = '+lx[i]+'[where(IIAGN_DET'+xfield[i]+')]-lxir[where(IIAGN_DET'+xfield[i]+')]') 
-    re = execute('if (n_elements(where(IIAGN_DRM'+xfield[i]+',/null)) gt 0) then '+lldrm[i]+'[where(IIAGN_DRM'+xfield[i]+')] = '+lx[i]+'[where(IIAGN_DRM'+xfield[i]+')]-lxir[where(IIAGN_DRM'+xfield[i]+')]') 
-    re = execute('if (n_elements(where(IIAGN_NON'+xfield[i]+',/null)) gt 0) then '+llnon[i]+'[where(IIAGN_NON'+xfield[i]+')] = '+lxlim[i]+'[where(IIAGN_NON'+xfield[i]+')]-lxir[where(IIAGN_NON'+xfield[i]+')]') 
-    re = execute('if (n_elements(where(IIAGN_NRM'+xfield[i]+',/null)) gt 0) then '+llnrm[i]+'[where(IIAGN_NRM'+xfield[i]+')] = '+lxlim[i]+'[where(IIAGN_NRM'+xfield[i]+')]-lxir[where(IIAGN_NRM'+xfield[i]+')]') 
+for f = 0,nfield-1 do begin
+    re = execute(lldet[f]+' = dblarr(nsrc)-9999.')
+    re = execute(lldrm[f]+' = dblarr(nsrc)-9999.')
+    re = execute(llnon[f]+' = dblarr(nsrc)-9999.')
+    re = execute(llnrm[f]+' = dblarr(nsrc)-9999.')
+    re = execute('if (n_elements(where(IIAGN_DET'+xfield[f]+',/null)) gt 0) then '+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = LX'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]-lxir[where(IIAGN_DET'+xfield[f]+')]') 
+    re = execute('if (n_elements(where(IIAGN_DRM'+xfield[f]+',/null)) gt 0) then '+lldrm[f]+'[where(IIAGN_DRM'+xfield[f]+')] = LX'+xfield[f]+'[where(IIAGN_DRM'+xfield[f]+')]-lxir[where(IIAGN_DRM'+xfield[f]+')]') 
+    re = execute('if (n_elements(where(IIAGN_NON'+xfield[f]+',/null)) gt 0) then '+llnon[f]+'[where(IIAGN_NON'+xfield[f]+')] = LXLIM'+xfield[f]+'[where(IIAGN_NON'+xfield[f]+')]-lxir[where(IIAGN_NON'+xfield[f]+')]') 
+    re = execute('if (n_elements(where(IIAGN_NRM'+xfield[f]+',/null)) gt 0) then '+llnrm[f]+'[where(IIAGN_NRM'+xfield[f]+')] = LXLIM'+xfield[f]+'[where(IIAGN_NRM'+xfield[f]+')]-lxir[where(IIAGN_NRM'+xfield[f]+')]') 
 endfor
 
 ;; combined all detections to single sample vector 
 llxdet = dblarr(nsrc)-9999.
 llxnon = dblarr(nsrc)-9999.
-;; valid detections first
-for i = 0,nfield-1 do begin
-    re = execute('llxdet[where(IIAGN_DET'+xfield[i]+' and llxdet eq -9999.,/null)] = '+lldet[i]+'[where(IIAGN_DET'+xfield[i]+' and llxdet eq -9999.,/null)]')
-    re = execute('llxnon[where(IIAGN_NON'+xfield[i]+' and llxnon eq -9999.,/null)] = '+llnon[i]+'[where(IIAGN_NON'+xfield[i]+' and llxnon eq -9999.,/null)]')
+;; valid detections/non-detections (supplement with removed detections)
+for f = 0,nfield-1 do begin
+    iidfill = llxdet eq -9999.
+    iinfill = llxnon eq -9999.
+    re = execute('llxdet[where(IIAGN_DET'+xfield[f]+' or IIAGN_DRM'+xfield[f]+' and iidfill,/null)] = '+lldet[f]+'[where(IIAGN_DET'+xfield[f]+' or IIAGN_DRM'+xfield[f]+' and iidfill,/null)]')
+    re = execute('llxnon[where(IIAGN_NON'+xfield[f]+' and iinfill,/null)] = '+llnon[f]+'[where(IIAGN_NON'+xfield[f]+' and iinfill,/null)]')
 endfor
 iixdet = llxdet ne -9999.
 iixnon = llxnon ne -9999.
-;; supplement with removed detections
-for i = 0,nfield-1 do begin
-    re = execute('llxdet[where(IIAGN_DRM'+xfield[i]+' and llxdet eq -9999.,/null)] = '+lldrm[i]+'[where(IIAGN_DRM'+xfield[i]+' and llxdet eq -9999.,/null)]')
-    ;re = execute('llxnrm[where(IIAGN_NRM'+xfield[i]+' and llxnon eq -9999.,/null)] = '+llnrm[i]+'[where(IIAGN_NRM'+xfield[i]+' and llxnon eq -9999.,/null)]')
-endfor
-iixd = llxdet ne -9999.
-iixn = llxnon ne -9999.
 
-nhxdet = ll2nh(llxdet,'2-10')
-nhxnon = ll2nh(llxnon,'2-10')
 
-sav_vars = ['LLDET','LLDRM','LLNON','LLNRM', $
-            lldet,lldrm,llnon,llnrm, $
-            'LLXDET','LLXNON', $
-            'NHXDET','NHXNON']
-sav_inds = ['IIXDET','IIXNON','IIXD','IIXN']
+sav_vars = [lldet,lldrm,llnon,llnrm,'LLXDET','LLXNON']
+sav_inds = ['IIXDET','IIXNON']
 
 sav_str = strjoin([sav_vars,sav_inds],',')
 re = execute('save,'+sav_str+',/compress,file="lum_ratio.sav"')
