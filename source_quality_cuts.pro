@@ -42,7 +42,7 @@ iiirb = lir ge 42.
 iiirw = lir gt 0. and lir lt 42.
 ;; require WISE bands for high E(B-V)
 iiirc = (ebv gt 50. and total(bin[iwise[2:3],*],1) eq 2.) or (ebv lt 50. and total(bin[iwise[2:3],*],1) ge 1)
-;; constrain E(B-V) extrema to high AGN fraction
+;; constrain E(B-V) extremum to high AGN fraction
 iiebv = (ebv lt 0.1 and agnf15.obs gt 0.7) or (ebv gt 0.1 and ebv lt 50.) or (ebv gt 50. and agnf15.obs gt 0.7)
 
 ;; passes all quality cuts, IR bright, and constrained E(B-V)
@@ -84,8 +84,8 @@ endfor
 iicntr = 'IICNTR'+xfield
 iioffa = 'IIOFFA'+xfield
 for f = 0,nfield-1 do begin 
-    re = execute(iicntr[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' le 0.5*FOV'+xfield[f])
-    re = execute(iioffa[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' gt 0.5*FOV'+xfield[f])
+    re = execute(iicntr[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' le FOV'+xfield[f]+'/sqrt(2.)')
+    re = execute(iioffa[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' gt FOV'+xfield[f]+'/sqrt(2.)')
 endfor
 
 sav_vars = [sav_vars]
@@ -101,10 +101,10 @@ iiagn_drm = 'IIAGN_DRM'+xfield
 iiagn_non = 'IIAGN_NON'+xfield
 iiagn_nrm = 'IIAGN_NRM'+xfield
 for f = 0,nfield-1 do begin
-    re = execute(iiagn_det[f]+' = IIINF'+xfield[f]+' and IIAGN and '+iidet[f]+' and '+iiclean[f]+' and IISN'+xfield[f])
-    re = execute(iiagn_drm[f]+' = IIINF'+xfield[f]+' and IIAGN and '+iidet[f]+' and '+iiclean[f]+' and ~IISN'+xfield[f])
-    re = execute(iiagn_non[f]+' = IIINF'+xfield[f]+' and IIAGN and ~'+iidet[f]+' and IIFLIM_PASS'+xfield[f]+' and '+iicntr[f])
-    re = execute(iiagn_nrm[f]+' = IIINF'+xfield[f]+' and IIAGN and ~'+iidet[f]+' and (IIFLIM_FAIL'+xfield[f]+' or '+iioffa[f]+')')
+    re = execute(iiagn_det[f]+' = IIINF'+xfield[f]+' and IIAGN and IIDET'+xfield[f]+' and IICLEAN'+xfield[f]+' and IISN'+xfield[f]+' and IICNTR'+xfield[f])
+    re = execute(iiagn_drm[f]+' = IIINF'+xfield[f]+' and IIAGN and IIDET'+xfield[f]+' and IICLEAN'+xfield[f]+' and (~IISN'+xfield[f]+' or IIOFFA'+xfield[f]+')')
+    re = execute(iiagn_non[f]+' = IIINF'+xfield[f]+' and IIAGN and ~IIDET'+xfield[f]+' and IIFLIM_PASS'+xfield[f]+' and IICNTR'+xfield[f])
+    re = execute(iiagn_nrm[f]+' = IIINF'+xfield[f]+' and IIAGN and ~IIDET'+xfield[f]+' and (IIFLIM_FAIL'+xfield[f]+' or IIOFFA'+xfield[f]+')')
 endfor
 
 sav_vars = [sav_vars]
@@ -112,18 +112,19 @@ sav_inds = [sav_inds,iiagn_det,iiagn_drm,iiagn_non,iiagn_nrm]
 
 
 ;; combined raw X-ray detections, sample-catalog matches
-det_str = strjoin('IIDET'+xfield,' or ')
-re = execute('iidet = '+det_str)
+re = execute('iidet = '+strjoin('IIDET'+xfield,' or '))
 ;; combined cleaned X-ray detections, sample-cleaned catalog matches
-clean_str = strjoin('IICLEAN'+xfield,' or ')
-re = execute('iiclean = '+clean_str)
-;; combined sources
-iiagn_det = iiagn and iiclean
-iiagn_non = iiagn and ~iidet
-iiagn_rem = iiagn and iidet and ~iiclean
+re = execute('iiclean = '+strjoin('IICLEAN'+xfield,' or '))
+;; combined final source detections
+re = execute('iiagn_det = '+strjoin('IIAGN_DET'+xfield,' or '))
+;; intermediate step to non-detections (MEANINGLESS AS A FULL SAMPLE COMBINED VECTOR)
+re = execute('iiagn_drm = '+strjoin('IIAGN_DRM'+xfield,' or '))
+re = execute('iiagn_nrm = '+strjoin('IIAGN_NRM'+xfield,' or '))
+;; combined final source non-detections (in AGN_NON, no detections at all, not a non-detection that was removed)
+re = execute('iiagn_non = ('+strjoin('IIAGN_NON'+xfield,' or ')+') and ~iidet and ~iiagn_nrm')
 
 sav_vars = [sav_vars]
-sav_inds = [sav_inds,'IIDET','IICLEAN','IIAGN_DET','IIAGN_NON','IIAGN_REM']
+sav_inds = [sav_inds,'IIDET','IICLEAN','IIAGN_DET','IIAGN_NON']
 
 
 sav_str = strjoin([sav_vars,sav_inds],',')

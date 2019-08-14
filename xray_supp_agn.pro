@@ -16,7 +16,8 @@ nkeys = n_elements(infield) + $
         n_elements(lum) + $
         n_elements(clean) + $
         n_elements(quality) + $
-        n_elements(ratio)
+        n_elements(ratio) + $
+        n_elements(nhdist)
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; load SED output
@@ -109,7 +110,7 @@ if keyword_set(nhdist) then begin
     compute_nh_distribution
     nkeys--
 endif
-load_Vars,'nh_dist.sav','_nhdist'
+load_vars,'nh_dist.sav','_nhdist'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 

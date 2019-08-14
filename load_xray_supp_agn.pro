@@ -37,13 +37,16 @@ END
 ;       common _softx       
 ;       common _fluxlim     
 ;       common _comp        
-;       common _agnlum     
+;       common _agnlum      
 ;       common _clean_cha   
 ;       common _clean_xmm   
 ;       common _clean_nst   
 ;       common _quality     
 ;       common _lum_ratio   
-;       common _nhdist
+;       common _nhdist      
+
+
+
 
    
 
