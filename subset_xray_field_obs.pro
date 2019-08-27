@@ -105,6 +105,8 @@ for i = 0,n_elements(in_files)-1 do begin
     
     restore,in_files[i]
     nsrc = n_elements(obs)
+    ra = obs.ra
+    dec = obs.dec
 
     iiinf_cha = bytarr(nsrc)
     iiinf_xmm = bytarr(nsrc)
