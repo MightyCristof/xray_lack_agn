@@ -7,7 +7,11 @@ sav_str = ((strsplit(in_files,'/',/extract,/regex)).toArray())[*,-1]
 
 ;; X-RAY FIELD MASTER ARCHIVES
 
-;; Chandra Master
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; CHANDRA
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 cha_pth = '/Users/ccarroll/Research/surveys/Chandra/*master*.fits'
 ;; OBSERVATIONS
 ;; use only archived sources
@@ -18,6 +22,20 @@ cha_arch = cha_arch[where(cha_arch.detector eq 'ACIS-I',/null)]
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html
 fov_cha = 16.*60./2.
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; XMM-Newton
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; NuSTAR
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; XMM Master
 xmm_pth = '/Users/ccarroll/Research/surveys/XMM/*master*.fits'
