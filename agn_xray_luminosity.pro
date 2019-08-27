@@ -50,8 +50,7 @@ endif else $
 ;iilumc = iilir and iiirc and iichi; and agnf6.obs gt 0.7;((ebv lt 0.2 and agnf6.obs gt 0.9) or (ebv gt 50. and agnf6.obs gt 0.9))
 ;ilumc = where(iilumc)
 ;lir[ilumc] = correct_agn_lum(lir[ilumc],wave,flux[*,ilumc],e_flux[*,ilumc],param[*,ilumc],z[ilumc],agnf6[ilumc].obs,/over,/under,NCORR=ncorr)
-lir = correct_agn_lum(lir,wave,flux,e_flux,param,z,agnf6.obs,/over,/under,NCORR=ncorr)
-
+lir = correct_agn_lum(lir,wave,flux,e_flux,param,z,agnf6.obs,/over,/under,IICORR=iicorr)
 ;; LX as a function of LIR, LX-LIR relationship
 lxir = dblarr(nsrc)                     ;; unobscured LX given L6um
 lcut = 44.79                                ;; luminosity turnover based on LX-L6um relationship
@@ -68,8 +67,8 @@ fxir = dblarr(nsrc)
 fxir[ilir] = 10.^(lxir[ilir])/(4.*!const.pi*dl2[ilir])
 
 
-sav_vars = [sav_vars,'NCORR','LIR','LXIR','DL2','FXIR']
-sav_inds = [sav_inds]
+sav_vars = [sav_vars,'LIR','LXIR','DL2','FXIR']
+sav_inds = [sav_inds,'IICORR']
 
 
 

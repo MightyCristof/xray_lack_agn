@@ -7,11 +7,12 @@ common _quality
 common _lum_ratio
 
 
-binsz = 0.2
-
 ;; NH distribution from all detections/non-detections
 nhxdet = ll2nh(llxdet,'2-10')
 nhxnon = ll2nh(llxnon,'2-10')
+
+binsz = 0.2
+;binsz = freedman(nhxdet[where(iiagn_det)])
 
 yhist_xdet = histogram(nhxdet[where(iiagn_det)],locations=xhist_xdet,bin=binsz)
 yhist_xnon = histogram(nhxnon[where(iiagn_non)],locations=xhist_xnon,bin=binsz)
@@ -21,10 +22,9 @@ xhist_xnon = [xhist_xnon[0]-binsz,xhist_xnon,xhist_xnon[-1]+binsz]
 yhist_xdet = [0.,yhist_xdet,0.]
 yhist_xnon = [0.,yhist_xnon,0.]
 
-sav_vars = ['NHXDET','NHXNON', $
-            'YHIST_XDET','XHIST_XDET','YHIST_XNON','XHIST_XNON']
+sav_vars = ['BINSZ','NHXDET','NHXNON', $
+                    'YHIST_XDET','XHIST_XDET','YHIST_XNON','XHIST_XNON']
 sav_inds = []
-
 
 ;; construct distributions by type WAC/Remaining
 ;; indices of WISE AGN detections/non-detections

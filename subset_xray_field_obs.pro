@@ -1,5 +1,5 @@
+;; takes in OBS files, this is before fitting
 PRO subset_xray_field_obs, in_files
-
 
 ;; output SAV file string
 sav_str = ((strsplit(in_files,'/',/extract,/regex)).toArray())[*,-1]
