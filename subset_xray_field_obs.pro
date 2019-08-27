@@ -10,25 +10,25 @@ sav_str = ((strsplit(in_files,'/',/extract,/regex)).toArray())[*,-1]
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Chandra Master Path
-mast_cha_path = '/Users/ccarroll/Resecha_arch/surveys/Chandra/*master*.fits'
+mast_path_cha = '/Users/ccarroll/Research/surveys/Chandra/*master*.fits'
 ;; 3XMM-DR8 Serendip Catalog Per-Observation Source Table
-cat_cha_path = '/Users/ccarroll/Resecha_arch/surveys/Chandra/observation-source-2.fits'
-;; Chandra Master cha_archive
-cha_arch = mrdfits(mast_cha_path,1)
+cat_path_cha = '/Users/ccarroll/Research/surveys/Chandra/observation-source-2.fits'
+;; Chandra Master arch_chaive
+arch_cha = mrdfits(mast_path_cha,1)
 ;; Master Catalog is updated more frequently than CSC2! 
 ;; avoid spurious non-detections!
-cat_cha = mrdfits(cat_cha_path,1)
+cat_cha = mrdfits(cat_path_cha,1)
 ;; use only OBSID that are in cat_chaalots
-mast_cha_id = cha_arch.obsid
-cat_cha_id = cat_cha[where(cat_cha.instrument eq 'ACIS',/null)].obsid
-cat_cha_id = cat_cha_id[uniq(cat_cha_id,sort(cat_cha_id))]
-match,mast_cha_id,cat_cha_id,imast_cha,icat_cha
-iicha_arch = bytarr(n_elements(cha_arch))
-iicha_arch[imast_cha] = 1
-cha_arch = cha_arch[where(iicha_arch,/null)]
-;; use only cha_archived sources
-cha_arch = cha_arch[where(cha_arch.status eq 'cha_archIVED' or cha_arch.status eq 'OBSERVED',/null)]
-cha_arch = cha_arch[where(cha_arch.detector eq 'ACIS-I',/null)]
+mast_id_cha = arch_cha.obsid
+cat_id_cha = cat_cha[where(cat_cha.instrument eq 'ACIS',/null)].obsid
+cat_id_cha = cat_id_cha[uniq(cat_id_cha,sort(cat_id_cha))]
+match,mast_id_cha,cat_id_cha,imast_cha,icat_cha
+iiarch_cha = bytarr(n_elements(arch_cha))
+iiarch_cha[imast_cha] = 1
+arch_cha = arch_cha[where(iiarch_cha,/null)]
+;; use only arch_chaived sources
+arch_cha = arch_cha[where(arch_cha.status eq 'ARCHIVED' or arch_cha.status eq 'OBSERVED',/null)]
+arch_cha = arch_cha[where(arch_cha.detector eq 'ACIS-I',/null)]
 ;; ACIS-I FOV is 16'x16'
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html
 fov_cha = 16.*60./2.
@@ -39,30 +39,30 @@ fov_cha = 16.*60./2.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; XMM Master Path
-mast_xmm_path = '/Users/ccarroll/Resexmm_arch/surveys/XMM/*master*.fits'
-;; 3XMM-DR8 Serendip xmm_catalog
-xmm_cat_xmm_path = '/Users/ccarroll/Resexmm_arch/surveys/XMM/3XMM_DR8xmm_cat_v1.0.fits'
-;; XMM Master xmm_archive
-xmm_arch = mrdfits(mast_xmm_path,1)
-;; Master xmm_catalog is updated more frequently than 3XMM-DR8! 
+mast_path_xmm = '/Users/ccarroll/Research/surveys/XMM/*master*.fits'
+;; 3XMM-DR8 Serendip cat_xmmalog
+cat_path_xmm = '/Users/ccarroll/Research/surveys/XMM/3XMM_DR8cat_xmm_v1.0.fits'
+;; XMM Master arch_xmmive
+arch_xmm = mrdfits(mast_path_xmm,1)
+;; Master cat_xmmalog is updated more frequently than 3XMM-DR8! 
 ;; avoid spurious non-detections!
-xmm_cat = mrdfits(xmm_cat_xmm_path,1)
-;; use only OBSID that are in xmm_catalots
-mast_xmm_id = xmm_arch.obsid
-xmm_cat_xmm_id = xmm_cat.obs_id
-xmm_cat_xmm_id = xmm_cat_xmm_id[uniq(xmm_cat_xmm_id,sort(xmm_cat_xmm_id))]
-match,mast_xmm_id,xmm_cat_xmm_id,imast_xmm,icat_xmm
-iixmm_arch = bytarr(n_elements(xmm_arch))
-iixmm_arch[imast_xmm] = 1
-xmm_arch = xmm_arch[where(iixmm_arch,/null)]
-;; use only xmm_archived sources (possibly use )
-xmm_arch = xmm_arch[where(xmm_arch.status eq 'xmm_archIVED' or xmm_arch.status eq 'OBSERVED',/null)]  ;; observed sources
-xmm_arch = xmm_arch[where(xmm_arch.pn_time gt 0.,/null)]                                      ;; ensure PN observation
-xmm_arch = xmm_arch[where(xmm_arch.duration gt 0.,/null)]                                     ;; sanity check
-iimode = strmatch(xmm_arch.pn_mode,'*FLG*',/fold) or $                          ;; ensure Large-Window or Full-Frame mode
-         strmatch(xmm_arch.pn_mode,'*FF*',/fold) or $
-         strmatch(xmm_arch.pn_mode,'*EFF*',/fold)
-xmm_arch = xmm_arch[where(iimode,/null)]
+cat_xmm = mrdfits(cat_xmm_path_xmm,1)
+;; use only OBSID that are in cat_xmmalots
+mast_id_xmm = arch_xmm.obsid
+cat_id_xmm = cat_xmm.obs_id
+cat_id_xmm = cat_id_xmm[uniq(cat_id_xmm,sort(cat_id_xmm))]
+match,mast_id_xmm,cat_id_xmm,imast_xmm,icat_xmm
+iiarch_xmm = bytarr(n_elements(arch_xmm))
+iiarch_xmm[imast_xmm] = 1
+arch_xmm = arch_xmm[where(iiarch_xmm,/null)]
+;; use only arch_xmmived sources (possibly use )
+arch_xmm = arch_xmm[where(arch_xmm.status eq 'ARCHIVED' or arch_xmm.status eq 'OBSERVED',/null)]  ;; observed sources
+arch_xmm = arch_xmm[where(arch_xmm.pn_time gt 0.,/null)]                                      ;; ensure PN observation
+arch_xmm = arch_xmm[where(arch_xmm.duration gt 0.,/null)]                                     ;; sanity check
+iimode = strmatch(arch_xmm.pn_mode,'*FLG*',/fold) or $                          ;; ensure Large-Window or Full-Frame mode
+         strmatch(arch_xmm.pn_mode,'*FF*',/fold) or $
+         strmatch(arch_xmm.pn_mode,'*EFF*',/fold)
+arch_xmm = arch_xmm[where(iimode,/null)]
 ;; XMM PN MOS FOV is ~27.5'x27.5'; use FOV inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/xmm/xmm.html
 fov_xmm = 27.5*60./2.
@@ -113,11 +113,11 @@ for i = 0,n_elements(in_files)-1 do begin
     iiinf_nst = bytarr(nsrc)
 
     ;; CHANDRA 
-    spherematch,ra,dec,cha_arch.ra,cha_arch.dec,fov_cha/3600.,isamp_cha,ifield,sep_cntr,maxmatch=0
+    spherematch,ra,dec,arch_cha.ra,arch_cha.dec,fov_cha/3600.,isamp_cha,ifield,sep_cntr,maxmatch=0
     iiinf_cha[isamp_cha] = 1
 
     ;; XMM
-    spherematch,ra,dec,xmm_arch.ra,xmm_arch.dec,fov_xmm/3600.,isamp_xmm,ifield,sep_cntr,maxmatch=0
+    spherematch,ra,dec,arch_xmm.ra,arch_xmm.dec,fov_xmm/3600.,isamp_xmm,ifield,sep_cntr,maxmatch=0
     iiinf_xmm[isamp_xmm] = 1
 
     ;; NUSTAR
