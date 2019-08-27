@@ -73,29 +73,27 @@ fov_xmm = 27.5*60./2.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Combined NuSTAR Fields Path
-mast_path = '/Users/ccarroll/Research/surveys/NuSTAR/*master*.fits'
-;; NuSTAR Catalogs
-cat_path = '/Users/ccarroll/Research/surveys/NuSTAR/combined_nustar_fields.fits'
+mast_path_nst = '/Users/ccarroll/Research_nst/surveys/NuSTAR/*master*.fits'
+;; NuSTAR cat_nstalogs
+cat_path_nst = '/Users/ccarroll/Research_nst/surveys/NuSTAR/combined_nustar_fields.fits'
 ;; Read in the NuSTAR observation information (HEASARC);
-arch = mrdfits(mast_path,1)
-;; Master Catalog is updated more frequently than 3XMM-DR8! 
+arch_nst = mrdfits(mast_path_nst,1)
+;; Master cat_nstalog is updated more frequently than 3XMM-DR8! 
 ;; avoid spurious non-detections!
-cat = mrdfits(cat_path,1)
+cat_nst = mrdfits(cat_path_nst,1)
 ;; NuSTAR FOV is 13'x13'
 ;; https://heasarc.gsfc.nasa.gov/docs/nustar/nustar.html
 fov_nst = 13.*60./2.
-spherematch,arch.ra,arch.dec,cat.ra,cat.dec,fov_nst/3600.,imast,icat,sep,maxmatch=0
-iiarch = bytarr(n_elements(arch))
-iiarch[imast] = 1
-arch = arch[where(iiarch,/null)]
+spherematch,arch_nst.ra,arch_nst.dec,cat_nst.ra,cat_nst.dec,fov_nst/3600.,imast_nst,icat_nst,sep,maxmatch=0
+iiarch_nst = bytarr(n_elements(arch_nst))
+iiarch_nst[imast_nst] = 1
+arch_nst = arch_nst[where(iiarch_nst,/null)]
 ;; for NuSTAR, select just the science subset
-arch = arch[where(arch.observation_mode eq 'SCIENCE',/null)]
-;; pull data from ARCH
-obsid = arch.obsid
-ra_nst = arch.ra
-dec_nst = arch.dec
-rot_angle = arch.roll_angle
-ontime = arch.ontime_a
+arch_nst = arch_nst[where(arch_nst.observation_mode eq 'SCIENCE',/null)]
+;; pull data from arch_nst
+ra_nst = arch_nst.ra
+dec_nst = arch_nst.dec
+rot_angle = arch_nst.roll_angle
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
