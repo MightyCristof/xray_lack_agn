@@ -128,10 +128,10 @@ for i = 0,n_elements(in_files)-1 do begin
         ;; for each sample source
         for n=0L,n_elements(ra[isu])-1 do begin 
            ;; for each x-ray observation
-           for m=0L,n_elements(ra_nst[ixu])-1 do begin 
-              GCIRC, 2, ra_nst[ixu[m]],dec_nst[ixu[m]],ra[isu[n]],dec[isu[n]],dist_test
+           for m=0L,n_elements(ra_nst[ifu])-1 do begin 
+              GCIRC, 2, ra_nst[ifu[m]],dec_nst[ifu[m]],ra[isu[n]],dec[isu[n]],dist_test
               if (dist_test le 2000.) then begin
-                 nustar_fov,ra_nst[ixu[m]],dec_nst[ixu[m]],rot_angle[ixu[m]],box_enc_x,box_enc_y   
+                 nustar_fov,ra_nst[ifu[m]],dec_nst[ifu[m]],rot_angle[ifu[m]],box_enc_x,box_enc_y   
                  dummy=IsPointInPolygon(box_enc_x,box_enc_y,ra[isu[n]],dec[isu[n]])
                  if (dummy eq -1) then iiinf_nst[isu[n]] = 1
               endif
