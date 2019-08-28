@@ -41,12 +41,12 @@ fov_cha = 16.*60./2.
 ;; XMM Master Path
 mast_path_xmm = '/Users/ccarroll/Research/surveys/XMM/*master*.fits'
 ;; 3XMM-DR8 Serendip cat_xmmalog
-cat_path_xmm = '/Users/ccarroll/Research/surveys/XMM/3XMM_DR8cat_xmm_v1.0.fits'
+cat_path_xmm = '/Users/ccarroll/Research/surveys/XMM/3XMM_DR8cat_v1.0.fits'
 ;; XMM Master arch_xmmive
 arch_xmm = mrdfits(mast_path_xmm,1)
 ;; Master cat_xmmalog is updated more frequently than 3XMM-DR8! 
 ;; avoid spurious non-detections!
-cat_xmm = mrdfits(cat_xmm_path_xmm,1)
+cat_xmm = mrdfits(cat_path_xmm,1)
 ;; use only OBSID that are in cat_xmmalots
 mast_id_xmm = arch_xmm.obsid
 cat_id_xmm = cat_xmm.obs_id
