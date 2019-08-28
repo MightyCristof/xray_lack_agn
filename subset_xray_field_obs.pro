@@ -73,9 +73,9 @@ fov_xmm = 27.5*60./2.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Combined NuSTAR Fields Path
-mast_path_nst = '/Users/ccarroll/Research_nst/surveys/NuSTAR/*master*.fits'
+mast_path_nst = '/Users/ccarroll/Research/surveys/NuSTAR/*master*.fits'
 ;; NuSTAR cat_nstalogs
-cat_path_nst = '/Users/ccarroll/Research_nst/surveys/NuSTAR/combined_nustar_fields.fits'
+cat_path_nst = '/Users/ccarroll/Research/surveys/NuSTAR/combined_nustar_fields.fits'
 ;; Read in the NuSTAR observation information (HEASARC);
 arch_nst = mrdfits(mast_path_nst,1)
 ;; Master cat_nstalog is updated more frequently than 3XMM-DR8! 
@@ -105,6 +105,8 @@ for i = 0,n_elements(in_files)-1 do begin
     
     restore,in_files[i]
     nsrc = n_elements(obs)
+    ra = obs.ra
+    dec = obs.dec
 
     iiinf_cha = bytarr(nsrc)
     iiinf_xmm = bytarr(nsrc)
