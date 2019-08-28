@@ -113,30 +113,32 @@ for i = 0,n_elements(in_files)-1 do begin
     iiinf_nst = bytarr(nsrc)
 
     ;; CHANDRA 
-    spherematch,ra,dec,arch_cha.ra,arch_cha.dec,fov_cha/3600.,isamp_cha,ifield,sep_cntr,maxmatch=0
-    iiinf_cha[isamp_cha] = 1
+    spherematch,ra,dec,arch_cha.ra,arch_cha.dec,fov_cha/3600.,isamp_cha,ifield_cha,sep_cntr,maxmatch=0
+    if (isamp_cha[0] ne -1) then iiinf_cha[isamp_cha] = 1
 
     ;; XMM
-    spherematch,ra,dec,arch_xmm.ra,arch_xmm.dec,fov_xmm/3600.,isamp_xmm,ifield,sep_cntr,maxmatch=0
-    iiinf_xmm[isamp_xmm] = 1
+    spherematch,ra,dec,arch_xmm.ra,arch_xmm.dec,fov_xmm/3600.,isamp_xmm,ifield_xmm,sep_cntr,maxmatch=0
+    if (isamp_xmm[0] ne -1) then iiinf_xmm[isamp_xmm] = 1
 
     ;; NUSTAR
-    spherematch,ra,dec,ra_nst,dec_nst,fov_nst/3600.,is,ix,sepnu,maxmatch=0
-    isu = is[uniq(is,sort(is))]
-    ixu = ix[uniq(ix,sort(ix))]
-    ;; for each sample source
-    for n=0L,n_elements(ra[isu])-1 do begin 
-       ;; for each x-ray observation
-       for m=0L,n_elements(ra_nst[ixu])-1 do begin 
-          GCIRC, 2, ra_nst[ixu[m]],dec_nst[ixu[m]],ra[isu[n]],dec[isu[n]],dist_test
-          if (dist_test le 2000.) then begin
-             nustar_fov,ra_nst[ixu[m]],dec_nst[ixu[m]],rot_angle[ixu[m]],box_enc_x,box_enc_y   
-             dummy=IsPointInPolygon(box_enc_x,box_enc_y,ra[isu[n]],dec[isu[n]])
-             if (dummy eq -1) then iiinf_nst[isu[n]] = 1
-          endif
-       endfor
-    endfor
-
+    spherematch,ra,dec,ra_nst,dec_nst,fov_nst/3600.,isamp_nst,ifield_nst,sepnu,maxmatch=0
+    if (isamp_nst[0]) ne -1 then begin
+        isu = isamp_nst[uniq(isamp_nst,sort(isamp_nst))]
+        ifu = ifield_nst[uniq(ifield_nst,sort(ifield_nst))]
+        ;; for each sample source
+        for n=0L,n_elements(ra[isu])-1 do begin 
+           ;; for each x-ray observation
+           for m=0L,n_elements(ra_nst[ixu])-1 do begin 
+              GCIRC, 2, ra_nst[ixu[m]],dec_nst[ixu[m]],ra[isu[n]],dec[isu[n]],dist_test
+              if (dist_test le 2000.) then begin
+                 nustar_fov,ra_nst[ixu[m]],dec_nst[ixu[m]],rot_angle[ixu[m]],box_enc_x,box_enc_y   
+                 dummy=IsPointInPolygon(box_enc_x,box_enc_y,ra[isu[n]],dec[isu[n]])
+                 if (dummy eq -1) then iiinf_nst[isu[n]] = 1
+              endif
+           endfor
+        endfor
+    endif
+    
     ;; COMBINE ALL FIELDS NOW
     iiinf = iiinf_cha or iiinf_xmm or iiinf_nst
     iinf = where(iiinf,ct)
