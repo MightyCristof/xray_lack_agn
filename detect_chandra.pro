@@ -27,7 +27,12 @@ for i = 0,n_elements(xband)-1 do begin
 endfor
 
 ;; match to sample sources
-spherematch,ra,dec,cha.ra,cha.dec,6./3600.,isamp,imatch,sep_cha
+;; Chandra PSF FWHM = 0.5"
+;; http://cxc.harvard.edu/proposer/POG/html/chap4.html
+;; we will use XMM separation
+psf_cha = 6.25
+spherematch,ra,dec,cha.ra,cha.dec,psf_cha/3600.,isamp,imatch,sepx
+sepx *= 3600.
 
 tags = ['NAME','RA','DEC','ACIS_TIME', $
         'FLUX_POWLAW_APER90_B','FLUX_POWLAW_APER90_B_ERR', $
@@ -54,6 +59,9 @@ for i = 0,nvars-1 do begin
     re = execute(cha_vars[i]+' = make_array(nsrc,/'+type+')')
     re = execute(cha_vars[i]+'[isamp] = cha[imatch].'+tags[i])
 endfor
+;; sample separation
+sep_cha = dblarr(nsrc)
+sep_cha[isamp] = sepx
 
 ;; convert 90% aperture flux to 100%
 aper90 = tags[where(strmatch(cha_vars,'*APER90*'),naper)]
@@ -66,7 +74,7 @@ iidet_cha[isamp] = 1
 idet_cha = where(iidet_cha)
 
 ;; save detection data
-cha_str = 'CHA,IIDET_CHA,IDET_CHA,'+strjoin(cha_vars,',')
+cha_str = 'CHA,IIDET_CHA,IDET_CHA,'+strjoin(cha_vars,',')+'SEP_CHA'
 re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
 
 ;; update in-field data

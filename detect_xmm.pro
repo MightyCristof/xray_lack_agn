@@ -12,7 +12,12 @@ pth1 = '/Users/ccarroll/Research/surveys/XMM/3XMM_DR8cat_v1.0.fits'
 ;; load XMM DR8 source catalog
 xmm = mrdfits(pth1,1)
 
-spherematch,ra,dec,xmm.ra,xmm.dec,6./3600.,isamp,imatch,sep_xmm
+;; XMM PSF FWHM = 12.5"
+;; https://heasarc.nasa.gov/docs/xmm/uhb/onaxisxraypsf.html#uhb:fig:onaxis_psf
+psf_xmm = 6.25
+spherematch,ra,dec,xmm.ra,xmm.dec,psf_xmm/3600.,isamp,imatch,sepx
+sepx *= 3600.
+
 tags = ['OBS_ID','OBS_CLASS', $
         'PN_FILTER','PN_SUBMODE', $
         'SC_RA','SC_DEC', $
@@ -42,6 +47,9 @@ for i = 0,nvars-1 do begin
     re = execute(xmm_vars[i]+' = make_array(nsrc,/'+type+')')
     re = execute(xmm_vars[i]+'[isamp] = xmm[imatch].'+tags[i])
 endfor
+;; sample separation
+sep_xmm = dblarr(nsrc)
+sep_xmm[isamp] = sepx
 
 ;; boolean flag for valid detection in any band
 iidet_xmm = bytarr(nsrc)
@@ -49,7 +57,7 @@ iidet_xmm[isamp] = 1
 idet_xmm = where(iidet_xmm)
 
 ;; save detection data
-xmm_str = 'XMM,IIDET_XMM,IDET_XMM,'+strjoin(xmm_vars,',')
+xmm_str = 'XMM,PSF_XMM,SEP_XMM,IIDET_XMM,IDET_XMM,'+strjoin(xmm_vars,',')
 re = execute('save,'+xmm_str+',/compress,file="detections_xmm.sav"')
 
 ;; update in-field data

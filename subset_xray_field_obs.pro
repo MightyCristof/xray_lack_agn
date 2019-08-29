@@ -31,7 +31,7 @@ arch_cha = arch_cha[where(arch_cha.status eq 'ARCHIVED' or arch_cha.status eq 'O
 arch_cha = arch_cha[where(arch_cha.detector eq 'ACIS-I',/null)]
 ;; ACIS-I FOV is 16'x16'
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html
-fov_cha = 16.*60./2.
+fov_cha = 16./2.*60.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -65,7 +65,7 @@ iimode = strmatch(arch_xmm.pn_mode,'*FLG*',/fold) or $                          
 arch_xmm = arch_xmm[where(iimode,/null)]
 ;; XMM PN MOS FOV is ~27.5'x27.5'; use FOV inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/xmm/xmm.html
-fov_xmm = 27.5*60./2.
+fov_xmm = 27.5/2.*60.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -73,27 +73,22 @@ fov_xmm = 27.5*60./2.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Combined NuSTAR Fields Path
-mast_path_nst = '/Users/ccarroll/Research/surveys/NuSTAR/*master*.fits'
-;; NuSTAR cat_nstalogs
-cat_path_nst = '/Users/ccarroll/Research/surveys/NuSTAR/combined_nustar_fields.fits'
-;; Read in the NuSTAR observation information (HEASARC);
-arch_nst = mrdfits(mast_path_nst,1)
-;; Master cat_nstalog is updated more frequently than 3XMM-DR8! 
-;; avoid spurious non-detections!
-cat_nst = mrdfits(cat_path_nst,1)
+mast_path = '/Users/ccarroll/Research/surveys/NuSTAR/*master*.fits'
+arch = mrdfits(mast_path,1)
+cat_id = create_nustar_master_obsid_list()
+;; use only OBSID that are in catalots
+mast_id = arch.obsid
+match,mast_id,cat_id,imast,icat
+iiarch = bytarr(n_elements(arch))
+iiarch[imast] = 1
+arch = arch[where(iiarch,/null)]
+;; use only archived sources
+arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED',/null)]
+;; select SCIENCE mode
+arch = arch[where(arch.observation_mode eq 'SCIENCE',/null)]
 ;; NuSTAR FOV is 13'x13'
 ;; https://heasarc.gsfc.nasa.gov/docs/nustar/nustar.html
-fov_nst = 13.*60./2.
-spherematch,arch_nst.ra,arch_nst.dec,cat_nst.ra,cat_nst.dec,fov_nst/3600.,imast_nst,icat_nst,sep,maxmatch=0
-iiarch_nst = bytarr(n_elements(arch_nst))
-iiarch_nst[imast_nst] = 1
-arch_nst = arch_nst[where(iiarch_nst,/null)]
-;; for NuSTAR, select just the science subset
-arch_nst = arch_nst[where(arch_nst.observation_mode eq 'SCIENCE',/null)]
-;; pull data from arch_nst
-ra_nst = arch_nst.ra
-dec_nst = arch_nst.dec
-rot_angle = arch_nst.roll_angle
+fov_nst = 13./2.*60.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -121,24 +116,9 @@ for i = 0,n_elements(in_files)-1 do begin
     if (isamp_xmm[0] ne -1) then iiinf_xmm[isamp_xmm] = 1
 
     ;; NUSTAR
-    spherematch,ra,dec,ra_nst,dec_nst,fov_nst/3600.,isamp_nst,ifield_nst,sepnu,maxmatch=0
-    if (isamp_nst[0]) ne -1 then begin
-        isu = isamp_nst[uniq(isamp_nst,sort(isamp_nst))]
-        ifu = ifield_nst[uniq(ifield_nst,sort(ifield_nst))]
-        ;; for each sample source
-        for n=0L,n_elements(ra[isu])-1 do begin 
-           ;; for each x-ray observation
-           for m=0L,n_elements(ra_nst[ifu])-1 do begin 
-              GCIRC, 2, ra_nst[ifu[m]],dec_nst[ifu[m]],ra[isu[n]],dec[isu[n]],dist_test
-              if (dist_test le 2000.) then begin
-                 nustar_fov,ra_nst[ifu[m]],dec_nst[ifu[m]],rot_angle[ifu[m]],box_enc_x,box_enc_y   
-                 dummy=IsPointInPolygon(box_enc_x,box_enc_y,ra[isu[n]],dec[isu[n]])
-                 if (dummy eq -1) then iiinf_nst[isu[n]] = 1
-              endif
-           endfor
-        endfor
-    endif
-    
+    spherematch,ra,dec,arch_nst.ra,arch_nst.dec,fov_nst/3600.,isamp_nst,ifield_nst,sep_cntr,maxmatch=0
+    if (isamp_nst[0]) ne -1 then iiinf_nst[isamp_nst] = 1
+        
     ;; COMBINE ALL FIELDS NOW
     iiinf = iiinf_cha or iiinf_xmm or iiinf_nst
     iinf = where(iiinf,ct)
