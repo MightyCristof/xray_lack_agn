@@ -74,18 +74,18 @@ fov_xmm = 27.5/2.*60.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Combined NuSTAR Fields Path
 mast_path = '/Users/ccarroll/Research/surveys/NuSTAR/*master*.fits'
-arch = mrdfits(mast_path,1)
+arch_nst = mrdfits(mast_path,1)
 cat_id = create_nustar_master_obsid_list()
 ;; use only OBSID that are in catalots
-mast_id = arch.obsid
+mast_id = arch_nst.obsid
 match,mast_id,cat_id,imast,icat
-iiarch = bytarr(n_elements(arch))
+iiarch = bytarr(n_elements(arch_nst))
 iiarch[imast] = 1
-arch = arch[where(iiarch,/null)]
+arch_nst = arch_nst[where(iiarch,/null)]
 ;; use only archived sources
-arch = arch[where(arch.status eq 'ARCHIVED' or arch.status eq 'OBSERVED',/null)]
+arch_nst = arch_nst[where(arch_nst.status eq 'ARCHIVED' or arch_nst.status eq 'OBSERVED',/null)]
 ;; select SCIENCE mode
-arch = arch[where(arch.observation_mode eq 'SCIENCE',/null)]
+arch_nst = arch_nst[where(arch_nst.observation_mode eq 'SCIENCE',/null)]
 ;; NuSTAR FOV is 13'x13'
 ;; https://heasarc.gsfc.nasa.gov/docs/nustar/nustar.html
 fov_nst = 13./2.*60.
