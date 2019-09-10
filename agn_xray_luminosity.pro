@@ -38,19 +38,24 @@ sav_inds = ['IILIR']
 ;; LUMINOSITIES -- L(IR) AND LX(LIR)
 ;;----------------------------------------------------------------------------------------
 ;; IR 6-micron AGN luminosity calculated from SED model parameters
-lir = dblarr(nsrc)
+lir_orig = dblarr(nsrc)
 if keyword_set(dered) then begin
     l06int = l_agn(6.,dblarr(nagn),z[ilir],c_agn[ilir],/log)    ;; 6-micron intrinsic
-    lir[ilir] = l06int                                          ;; 6-micron intrinsic
+    lir_orig[ilir] = l06int                                          ;; 6-micron intrinsic
 endif else $
-    lir[ilir] = l_agn(6.,ebv[ilir],z[ilir],c_agn[ilir],/log)    ;; 6-micron observed
+    lir_orig[ilir] = l_agn(6.,ebv[ilir],z[ilir],c_agn[ilir],/log)    ;; 6-micron observed
 
 ;; correct AGN luminosity where template over- or underestimates beyond uncertainties
 ;; luminosity corrected
 ;iilumc = iilir and iiirc and iichi; and agnf6.obs gt 0.7;((ebv lt 0.2 and agnf6.obs gt 0.9) or (ebv gt 50. and agnf6.obs gt 0.9))
 ;ilumc = where(iilumc)
 ;lir[ilumc] = correct_agn_lum(lir[ilumc],wave,flux[*,ilumc],e_flux[*,ilumc],param[*,ilumc],z[ilumc],agnf6[ilumc].obs,/over,/under,NCORR=ncorr)
-lir = correct_agn_lum(lir,wave,flux,e_flux,param,z,agnf6.obs,/over,/under,IICORR=iicorr)
+;lir = lir_orig
+;lir = correct_agn_lum(lir,wave,flux,e_flux,param,z,agnf6.obs,/over,/under,IICORR=iicorr)
+lir_corr = correct_agn_lum(lir_orig,wave,flux,e_flux,param)
+iicorr = lir_corr ne lir_orig
+lir = lir_corr
+
 ;; LX as a function of LIR, LX-LIR relationship
 lxir = dblarr(nsrc)                     ;; unobscured LX given L6um
 lcut = 44.79                                ;; luminosity turnover based on LX-L6um relationship

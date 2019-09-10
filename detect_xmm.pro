@@ -57,7 +57,7 @@ iidet_xmm[isamp] = 1
 idet_xmm = where(iidet_xmm)
 
 ;; save detection data
-xmm_str = 'XMM,PSF_XMM,SEP_XMM,IIDET_XMM,IDET_XMM,'+strjoin(xmm_vars,',')
+xmm_str = 'XMM,SEP_XMM,IIDET_XMM,IDET_XMM,'+strjoin(xmm_vars,',')
 re = execute('save,'+xmm_str+',/compress,file="detections_xmm.sav"')
 
 ;; update in-field data

@@ -1,9 +1,9 @@
-FUNCTION xray_flim, expt, $
-                    xflx, $
-                    xerr;, $
-                    ;PHOT_K = k1, $
-                    ;BACK_K = k2, $
-                    ;NRML = c2
+FUNCTION xray_flux_limit, expt, $
+                          xflx, $
+                          xerr;, $
+                          ;PHOT_K = k1, $
+                          ;BACK_K = k2, $
+                          ;NRML = c2
 
 
 ;; convert to log-log
@@ -17,6 +17,7 @@ ncat = n_elements(lexp)
 mmlexp = minmax(lexp)
 if (ncat lt 1000.) then nbins = 6. else $
                         nbins = 20.
+halfbin = nbins/2.
 binsz = diff(mmlexp)/nbins
 ;; PHOTON-LIMITED CASE
 bins1 = []
@@ -25,33 +26,44 @@ minerr1 = []
 
 nobj = 0.
 ;; loop through bins
-for i = 0,nbins-2 do begin
+for i = 0,halfbin-1 do begin
+    ;; round up the sources in bin
     binra = [mmlexp[0]+binsz*i,mmlexp[0]+binsz*(i+1)]
     ibin = where(lexp ge binra[0] and lexp le binra[1],binct)
-    if (binct lt floor(nobj*0.75)) then break
+    ;if (binct lt floor(nobj*0.75)) then break
     nobj = binct
     if (binct eq 0) then continue
+    ;; shed the outer sources to get closer to the middle value
     resistant_mean,lexp[ibin],2.,midpt,sigmn,nrej,goodvec=ig
     binexp = lexp[ibin[ig]]
     binflx = lflx[ibin[ig]]
     binerr = lerr[ibin[ig]]
+    ;; grab a subset of these sources from the left
     ilo = [0:floor(n_elements(binflx)*0.1)<n_elements(binflx)-1]
     clipexp = binexp[ilo]
     clipflx = binflx[ilo]
     cliperr = binerr[ilo]
+    ;; smooth over the flux+error
     resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
-    loflx = min(clipflx[ig]-cliperr[ig],imin)
+    ;; pick the smallest flux+error
+    ;loflx = min(clipflx[ig],imin)
+    loflx = min(clipflx[ig]-(cliperr[ig]*0.5),imin)
     loexp = clipexp[ig[imin]]
     loerr = cliperr[ig[imin]]
-    ;; ihi = [-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
+    ;; grab a subest of these sources from the right
     clipexp = binexp[-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
     clipflx = binflx[-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
     cliperr = binerr[-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
+    ;; smooth over the flux+error
     resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
-    hiflx = min(clipflx[ig]-cliperr[ig],imax)
+    ;; pick the smallest flux+error
+    ;hiflx = min(clipflx[ig],imax)
+    hiflx = min(clipflx[ig]-(cliperr[ig]*0.5),imax)
     hiexp = clipexp[ig[imax]]
     hierr = cliperr[ig[imax]]
+    ;; middle of bin range AKA the exposure time
     bins1 = [bins1,midpt]
+    ;; assign flux value at that middle range
     if (hiflx-loflx eq 0.) then begin
         mins1 = [mins1,loflx]
         minerr1 = [minerr1,loerr]
@@ -63,20 +75,19 @@ endfor
 
 if (n_elements(bins1) lt 3.) then stop
 dy1 = deriv(bins1,mins1)
-resistant_mean,dy1,1.,mn1,sigm1,nrej1,goodvec=ig1
+resistant_mean,dy1,1.5,mn1,sigm1,nrej1,goodvec=ig1
 re1 = poly_fit(bins1[ig1],mins1[ig1],1)
 
-if ((nbins gt 6) and (i lt nbins-2)) then begin
+if (nbins gt 6) then begin
     bins2 = []
     mins2 = []
     minerr2 = []
     ;bintr = mmlexp[0]+binsz*i
     ;nbins = nbins-i
-    if (i gt nbins/2) then i -= 1
-    for i = i,nbins-2 do begin
+    for i = halfbin,nbins-1 do begin
         binra = [mmlexp[0]+binsz*i,mmlexp[0]+binsz*(i+1)]
         ibin = where(lexp ge binra[0] and lexp le binra[1],binct)
-        if (binct lt floor(nobj*0.5)) then break
+        ;if (binct lt floor(nobj*0.5)) then break
         nobj = binct
         if (binct eq 0) then continue
         resistant_mean,lexp[ibin],2.,midpt,sigmn,nrej,goodvec=ig
@@ -88,7 +99,8 @@ if ((nbins gt 6) and (i lt nbins-2)) then begin
         clipflx = binflx[ilo]
         cliperr = binerr[ilo]
         resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
-        loflx = min(clipflx[ig]-cliperr[ig],imin)
+        ;loflx = min(clipflx[ig],imin)
+        loflx = min(clipflx[ig]-(cliperr[ig]*0.5),imin)
         loexp = clipexp[ig[imin]]
         loerr = cliperr[ig[imin]]
         ;; ihi = [-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
@@ -96,7 +108,8 @@ if ((nbins gt 6) and (i lt nbins-2)) then begin
         clipflx = binflx[-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
         cliperr = binerr[-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
         resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
-        hiflx = min(clipflx[ig]-cliperr[ig],imax)
+        ;hiflx = min(clipflx[ig],imax)
+        hiflx = min(clipflx[ig]-(cliperr[ig]*0.5),imax)
         hiexp = clipexp[ig[imax]]
         hierr = cliperr[ig[imax]]
         bins2 = [bins2,midpt]
@@ -104,7 +117,7 @@ if ((nbins gt 6) and (i lt nbins-2)) then begin
         minerr2 = [minerr2,interpol([loerr,hierr],[loexp,hiexp],midpt)]
     endfor
     dy2 = deriv(bins2,mins2)
-    resistant_mean,dy2,1.,mn2,sigm2,nrej2,goodvec=ig2
+    resistant_mean,dy2,2.,mn2,sigm2,nrej2,goodvec=ig2
     re2 = poly_fit(bins2[ig2],mins2[ig2],1)
 endif
 

@@ -74,7 +74,7 @@ iidet_cha[isamp] = 1
 idet_cha = where(iidet_cha)
 
 ;; save detection data
-cha_str = 'CHA,IIDET_CHA,IDET_CHA,'+strjoin(cha_vars,',')+'SEP_CHA'
+cha_str = 'CHA,SEP_CHA,IIDET_CHA,IDET_CHA,'+strjoin(cha_vars,',')
 re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
 
 ;; update in-field data

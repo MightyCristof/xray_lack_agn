@@ -51,7 +51,7 @@ for f = 0,nfield-1 do begin
     re = execute(cat_err[f]+' = '+cat_err[f]+'[icat_sn]')
 endfor
 
-for f = 0,nfield-1 do re = execute(cat_lim[f]+' = xray_flim('+cat_exp[f]+','+cat_flx[f]+','+cat_err[f]+')')
+for f = 0,nfield-1 do re = execute(cat_lim[f]+' = xray_flux_limit('+cat_exp[f]+','+cat_flx[f]+','+cat_err[f]+')')
 
 sav_vars = [cat_exp,cat_flx,cat_err,cat_lim]
 sav_inds = []
@@ -72,13 +72,16 @@ if keyword_set(plt) then begin
     ;xr=xra[*,i],yr=yra[*,i],
     current = 0
     for i = 0,nfield-1 do begin
-        re = execute('p = plot(alog10('+cat_exp[i]+'),alog10('+cat_flx[i]+'),".",_extra=e,layout=[3,1,i+1],current=current)')
-        re = execute('p = plot(alog10('+cat_exp[i]+'),alog10('+cat_lim[i]+'),"--r",thick=2,/ov)')
+        re = execute('len = n_elements('+cat_exp[i]+')')
+        re = execute('irand = round(randomu(seed,len/4.)*n_elements('+cat_exp[i]+'))')
+        irand = irand[sort(irand)]
+        re = execute('p = plot(alog10('+cat_exp[i]+'[irand]),alog10('+cat_flx[i]+'[irand]),".",_extra=e,layout=[3,1,i+1],current=current)')
+        re = execute('p = plot(alog10('+cat_exp[i]+'[irand]),alog10('+cat_lim[i]+'[irand]),"--r",thick=2,/ov)')
         p.xtitle = ('$t_{exp} '+['Chandra','XMM','NuSTAR']+' [ks]$')[i]
         p.ytitle = ('$log '+['F_{X,2-10keV}','F_{X,2-10keV}','F_{X,2-10keV}']+' [erg s^{-1} cm^{-2}]$')[i]
         if (current eq 0) then current = 1
     endfor
-    p.save,'plot_flux_limit.png'
+    ;p.save,'plot_flux_limit.png'
 endif
 
 

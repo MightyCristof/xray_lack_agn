@@ -44,7 +44,7 @@ iidet_nst[isamp] = 1
 idet_nst = where(iidet_nst)
 
 ;; save detection data
-nst_str = 'NST,PSF_NST,SEP_NST,IIDET_NST,IDET_NST,'+strjoin(nst_vars,',')
+nst_str = 'NST,SEP_NST,IIDET_NST,IDET_NST,'+strjoin(nst_vars,',')
 re = execute('save,'+nst_str+',/compress,file="detections_nst.sav"')
 
 ;; update in-field data
