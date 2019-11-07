@@ -1,4 +1,4 @@
-PRO fit_catalog_xlim, PLT = plt
+PRO fit_catalog_flim, PLT = plt
 
 
 common _inf_cha
@@ -44,7 +44,7 @@ for f = 0,nfield-1 do begin
     re = execute(cat_flx[f]+' = '+cat_flx[f]+'[isort]')
     re = execute(cat_err[f]+' = '+cat_err[f]+'[isort]')
     re = execute('cat_sn = '+cat_flx[f]+'/'+cat_err[f])
-    re = execute('icat_sn = where(cat_sn ge 1. and '+cat_exp[f]+' gt 0.,ng)')
+    re = execute('icat_sn = where(cat_sn ge 2. and '+cat_exp[f]+' gt 0.,ng)')
     if (ng eq 0.) then stop
     re = execute(cat_exp[f]+' = '+cat_exp[f]+'[icat_sn]')
     re = execute(cat_flx[f]+' = '+cat_flx[f]+'[icat_sn]')
@@ -63,7 +63,7 @@ re = execute('save,'+sav_str+',/compress,file="catalog_flux_limits.sav"')
 ;; plot flux limits
 if keyword_set(plt) then begin
     e = {color:'light grey',transparency:0, $
-         xra:[2,7],yra:[-17,-10], $
+         xra:[2.5,6.5],yra:[-16,-12], $
          xlog:0,ylog:0, $
          aspect_ratio:0,dimension:[750,330], $
          buffer:0}

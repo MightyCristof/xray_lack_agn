@@ -12,18 +12,18 @@ nhxdet = ll2nh(llxdet,'2-10')
 nhxnon = ll2nh(llxnon,'2-10')
 
 binsz = 0.2
-;binsz = freedman(nhxdet[where(iiagn_det)])
+;binsz = freedman(nhdet[where(iiagn_det)])
 
-yhist_xdet = histogram(nhxdet[where(iiagn_det)],locations=xhist_xdet,bin=binsz)
-yhist_xnon = histogram(nhxnon[where(iiagn_non)],locations=xhist_xnon,bin=binsz)
+yhist_det = histogram(nhxdet[where(iiagn_det)],locations=xhist_det,bin=binsz)
+yhist_non = histogram(nhxnon[where(iiagn_non)],locations=xhist_non,bin=binsz)
 
-xhist_xdet = [xhist_xdet[0]-binsz,xhist_xdet,xhist_xdet[-1]+binsz]
-xhist_xnon = [xhist_xnon[0]-binsz,xhist_xnon,xhist_xnon[-1]+binsz]
-yhist_xdet = [0.,yhist_xdet,0.]
-yhist_xnon = [0.,yhist_xnon,0.]
+xhist_det = [xhist_det[0]-binsz,xhist_det,xhist_det[-1]+binsz]
+xhist_non = [xhist_non[0]-binsz,xhist_non,xhist_non[-1]+binsz]
+yhist_det = [0.,yhist_det,0.]
+yhist_non = [0.,yhist_non,0.]
 
 sav_vars = ['BINSZ','NHXDET','NHXNON', $
-                    'YHIST_XDET','XHIST_XDET','YHIST_XNON','XHIST_XNON']
+                    'YHIST_DET','XHIST_DET','YHIST_NON','XHIST_NON']
 sav_inds = []
 
 ;; construct distributions by type WAC/Remaining

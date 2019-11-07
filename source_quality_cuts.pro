@@ -22,8 +22,11 @@ common _clean_nst
 ;;----------------------------------------------------------------------------------------
 ;; Main Sample Quality Control 
 ;;----------------------------------------------------------------------------------------
-;; redshift range 0 ² z ²Ê1
-iiz = z gt 0. and z lt 0.6
+;; redshift range 0 < z ²Ê0.6 for photo-zs
+ztype = zorig(zarr)
+iizp = z gt 0. and z le 0.6 and strmatch(ztype,'ZP')
+iizs = z gt 0. and strmatch(ztype,'ZS*')
+iiz = iizp or iizs
 ;; SED chi-square goodness of fit
 chi = reform(param[-2,*])
 dof = reform(param[-1,*])
@@ -41,15 +44,17 @@ iisnw = totsn ge 4.                      ;; note: all non-finite sn_wise == -NaN
 iiirb = lir ge 42.
 iiirw = lir gt 0. and lir lt 42.
 ;; require WISE bands for high E(B-V)
-iiirc = (ebv gt 50. and total(bin[iwise[2:3],*],1) eq 2.) or (ebv lt 50. and total(bin[iwise[2:3],*],1) ge 1)
+;iiirc = (ebv gt 50. and total(bin[iwise[2:3],*],1) eq 2.) or (ebv lt 50. and total(bin[iwise[2:3],*],1) ge 1)
 ;; constrain E(B-V) extremum to high AGN fraction
-iiebv = (ebv lt 0.1 and agnf15.obs gt 0.7) or (ebv gt 0.1 and ebv lt 50.) or (ebv gt 50. and agnf15.obs gt 0.7)
+;iiebv = (ebv lt 0.1 and agnf15.obs gt 0.7) or (ebv gt 0.1 and ebv lt 50.) or (ebv gt 50. and agnf15.obs gt 0.7)
+;; AGN fraction minimum of 70%
+iifagn = agnf15.obs ge 0.7
 
 ;; passes all quality cuts, IR bright, and constrained E(B-V)
-iiagn = iiz and iichi and iisnw and iiirb and iiirc and iiebv
+iiagn = iiz and iichi and iisnw and iiirb and iifagn;iiirc and iiebv and iifagn
 
-sav_vars = ['CHI','DOF','RCHI','SN_WISE','TOTSN']
-sav_inds = ['IIZ','IICHI','IWISE','IISNW','IIIRB','IIIRW','IIIRC','IIEBV','IIAGN']
+sav_vars = ['ZTYPE','CHI','DOF','RCHI','SN_WISE','TOTSN']
+sav_inds = ['IIZP','IIZS','IIZ','IICHI','IWISE','IISNW','IIIRB','IIIRW','IIFAGN','IIAGN'];'IIIRC','IIEBV','IIAGN','IIFAGN']
 
 ;;----------------------------------------------------------------------------------------
 ;; X-ray Catalog Quality Control
