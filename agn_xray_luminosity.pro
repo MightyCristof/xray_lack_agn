@@ -1,6 +1,5 @@
 PRO agn_xray_luminosity, DERED = dered, $
-                         PLT = plt, $
-                         COMBINE = combine
+                         PLT = plt
 
 
 common _fits

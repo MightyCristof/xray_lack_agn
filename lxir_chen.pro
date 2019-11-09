@@ -15,9 +15,11 @@ iilo = log_lir lt 44.79
 ilo = where(iilo,loct)
 ihi = where(~iilo,hict)
 if (loct gt 0.) then log_lxir[ilo] = (0.84)*(log_lir[ilo]-45.) + (44.60)
-if keyword_set(scatter) then log_lxir[ilo] += 2.*sig*(randomu(seed,loct)-0.5)
+if keyword_set(scatter) then log_lxir[ilo] += randomn(seed,loct)*sig
+;if keyword_set(scatter) then log_lxir[ilo] += 2.*sig*(randomu(seed,loct)-0.5)
 if (hict gt 0.) then log_lxir[ihi] = (0.40)*(log_lir[ihi]-45.) + (44.51)
-if keyword_set(scatter) then log_lxir[ihi] += 2.*sig*(randomu(seed,hict)-0.5)
+if keyword_set(scatter) then log_lxir[ihi] += randomn(seed,hict)*sig
+;if keyword_set(scatter) then log_lxir[ihi] += 2.*sig*(randomu(seed,hict)-0.5)
 
 return, log_lxir
 

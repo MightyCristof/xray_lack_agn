@@ -23,9 +23,10 @@ common _clean_nst
 ;; Main Sample Quality Control 
 ;;----------------------------------------------------------------------------------------
 ;; redshift range 0 < z ²Ê0.6 for photo-zs
+;; redshift range 0 < z ²Ê1.o for spec-zs
 ztype = zorig(zarr)
 iizp = z gt 0. and z le 0.6 and strmatch(ztype,'ZP')
-iizs = z gt 0. and strmatch(ztype,'ZS*')
+iizs = z gt 0. and z le 1.0 and strmatch(ztype,'ZS*')
 iiz = iizp or iizs
 ;; SED chi-square goodness of fit
 chi = reform(param[-2,*])
