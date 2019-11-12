@@ -1,9 +1,14 @@
 ;; takes in OBS files, this is before fitting
-PRO subset_xray_field_obs, in_files
+PRO subset_xray_field_data
 
+dir_full = 'SDSSxWISE/'
+dir_infx = 'infield_xray/'
+
+files = file_search(dir_full+'*')
 
 ;; output SAV file string
-sav_str = ((strsplit(in_files,'/',/extract,/regex)).toArray())[*,-1]
+sav_str = ((strsplit(files,'/',/extract,/regex)).toArray())[*,-1]
+sav_str = (strsplit(sav_str,'.gz',/extract,/regex)).toArray()
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -96,13 +101,13 @@ fov_nst = 13./2.*60.
 ;; LOOP OVER EACH FILE
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-for i = 0,n_elements(in_files)-1 do begin
-    print, 'WORKING FIELD: '+in_files[i]
+for i = 0,n_elements(files)-1 do begin
+    print, 'WORKING FIELD: '+files[i]
     
-    restore,in_files[i]
-    nsrc = n_elements(obs)
-    ra = obs.ra
-    dec = obs.dec
+    r = mrdfits(files[i],1)
+    nsrc = n_elements(r)
+    ra = r.ra
+    dec = r.dec
 
     iiinf_cha = bytarr(nsrc)
     iiinf_xmm = bytarr(nsrc)
@@ -124,8 +129,8 @@ for i = 0,n_elements(in_files)-1 do begin
     iiinf = iiinf_cha or iiinf_xmm or iiinf_nst
     iinf = where(iiinf,ct)
     if (ct eq 0) then continue
-    obs = obs[iinf]
-    save,obs,band,/compress,file=sav_str[i]    
+    r = r[iinf]
+    mwrfits,r,dir_infx+sav_str[i],/create
 endfor
 
 
