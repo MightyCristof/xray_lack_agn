@@ -61,7 +61,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; estimate X-ray flux limits from catalogs
 if keyword_set(flim) then begin
-    fit_catalog_xlim;,/plt
+    fit_catalog_flim;,/plt
     nkeys--
 endif
 load_vars,'catalog_flux_limits.sav','_fluxlim'
@@ -71,7 +71,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 ;; load SED template components
 load_comp,'../comp_*.sav'
 if keyword_set(lum) then begin
-    agn_xray_luminosity,/dered,/combine
+    agn_xray_luminosity,/dered
     nkeys--
 endif
 load_vars,'src_luminosity.sav','_agnlum'

@@ -15,9 +15,10 @@ lerr = sqrt((xerr[isort]/(xflx[isort]*alog(10)))^2)
 ncat = n_elements(lexp)
 ;binsz = floor(ncat*0.05)
 mmlexp = minmax(lexp)
-if (ncat lt 1000.) then nbins = 6. else $
-                        nbins = 20.
-halfbin = nbins/2.
+if (ncat lt 1000.) then nbins = 4. else $
+                        nbins = 10.
+if (nbins gt 6) then halfbin = nbins/2. else $
+                     halfbin = 4
 binsz = diff(mmlexp)/nbins
 ;; PHOTON-LIMITED CASE
 bins1 = []
@@ -34,7 +35,7 @@ for i = 0,halfbin-1 do begin
     nobj = binct
     if (binct eq 0) then continue
     ;; shed the outer sources to get closer to the middle value
-    resistant_mean,lexp[ibin],2.,midpt,sigmn,nrej,goodvec=ig
+    resistant_mean,lexp[ibin],5.,midpt,sigmn,nrej,goodvec=ig
     binexp = lexp[ibin[ig]]
     binflx = lflx[ibin[ig]]
     binerr = lerr[ibin[ig]]
@@ -47,7 +48,8 @@ for i = 0,halfbin-1 do begin
     resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
     ;; pick the smallest flux+error
     ;loflx = min(clipflx[ig],imin)
-    loflx = min(clipflx[ig]-(cliperr[ig]*0.5),imin)
+    ;loflx = min(clipflx[ig]-(cliperr[ig]*0.5),imin)
+    loflx = min(clipflx[ig],imin)
     loexp = clipexp[ig[imin]]
     loerr = cliperr[ig[imin]]
     ;; grab a subest of these sources from the right
@@ -58,7 +60,8 @@ for i = 0,halfbin-1 do begin
     resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
     ;; pick the smallest flux+error
     ;hiflx = min(clipflx[ig],imax)
-    hiflx = min(clipflx[ig]-(cliperr[ig]*0.5),imax)
+    ;hiflx = min(clipflx[ig]-(cliperr[ig]*0.5),imax)
+    hiflx = min(clipflx[ig],imax)
     hiexp = clipexp[ig[imax]]
     hierr = cliperr[ig[imax]]
     ;; middle of bin range AKA the exposure time
@@ -90,7 +93,7 @@ if (nbins gt 6) then begin
         ;if (binct lt floor(nobj*0.5)) then break
         nobj = binct
         if (binct eq 0) then continue
-        resistant_mean,lexp[ibin],2.,midpt,sigmn,nrej,goodvec=ig
+        resistant_mean,lexp[ibin],5.,midpt,sigmn,nrej,goodvec=ig
         binexp = lexp[ibin[ig]]
         binflx = lflx[ibin[ig]]
         binerr = lerr[ibin[ig]]
@@ -100,7 +103,8 @@ if (nbins gt 6) then begin
         cliperr = binerr[ilo]
         resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
         ;loflx = min(clipflx[ig],imin)
-        loflx = min(clipflx[ig]-(cliperr[ig]*0.5),imin)
+        ;loflx = min(clipflx[ig]-(cliperr[ig]*0.5),imin)
+        loflx = min(clipflx[ig],imin)
         loexp = clipexp[ig[imin]]
         loerr = cliperr[ig[imin]]
         ;; ihi = [-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
@@ -109,7 +113,8 @@ if (nbins gt 6) then begin
         cliperr = binerr[-(floor(n_elements(binflx)*0.1)<n_elements(binflx)):-1]
         resistant_mean,clipflx-cliperr,5.,mn,sigmn,nrej,goodvec=ig
         ;hiflx = min(clipflx[ig],imax)
-        hiflx = min(clipflx[ig]-(cliperr[ig]*0.5),imax)
+        ;hiflx = min(clipflx[ig]-(cliperr[ig]*0.5),imax)
+        hiflx = min(clipflx[ig],imax)
         hiexp = clipexp[ig[imax]]
         hierr = cliperr[ig[imax]]
         bins2 = [bins2,midpt]

@@ -1,7 +1,7 @@
 PRO load_xray_supp_agn
 
 
-data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20190909_1335'
+data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20191022_1552'
 print, '*********************************************************************************'
 print, 'PATH: '+data_dir
 print, '*********************************************************************************'
