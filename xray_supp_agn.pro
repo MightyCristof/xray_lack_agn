@@ -61,7 +61,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; estimate X-ray flux limits from catalogs
 if keyword_set(flim) then begin
-    fit_catalog_flim;,/plt
+    fit_catalog_flim,/multi_sn;,/plt
     nkeys--
 endif
 load_vars,'catalog_flux_limits.sav','_fluxlim'
