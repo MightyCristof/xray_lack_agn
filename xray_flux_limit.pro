@@ -19,7 +19,7 @@ if (ncat lt 1000.) then nbins = 4. else $
                         nbins = 10.
 if (nbins gt 6) then halfbin = nbins/2. else $
                      halfbin = 4
-binsz = diff(mmlexp)/nbins
+binsz = (mmlexp[1]-mmlexp[0]))/nbins
 ;; PHOTON-LIMITED CASE
 bins1 = []
 mins1 = []
