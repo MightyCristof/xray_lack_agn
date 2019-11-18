@@ -16,9 +16,11 @@ spherematch,wac.ra,wac.dec,ra,dec,wac_sep,icat,isamp,sep_wac
 ;; byte flag for detected/matched in WISE AGN Catalog
 iidet_wac = bytarr(nsrc)
 iidet_wac[isamp] = 1
+sdst_wac = dblarr(nsrc)
+sdst_wac[isamp] = sep_wac
 
 ;; save data
-save,iidet_wac,wac,/compress,file='detections_wac.sav'
+save,iidet_wac,sdst_wac,wac,/compress,file='detections_wac.sav'
 
 
 END
