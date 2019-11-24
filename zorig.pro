@@ -23,6 +23,8 @@
 ; COMMENTS:
 ;   Used in conjunction with the QSED modeling. If catalogs change at READ_SED_PHOT,
 ;   then they need to be updated here as well.
+;   
+;   It is faster to loop and split than to split and loop using toArray().
 ;
 ; EXAMPLES:
 ;   
