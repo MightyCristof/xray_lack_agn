@@ -51,8 +51,8 @@ lir = lir_corr
 
 ;; LX(LIR) from LX-LIR relationship
 lxir = dblarr(nsrc)
-lxir[where(iilir)] = lxir_chen(lir[where(iilir)],/scatter)
-;lxir[where(iilir)] = lxir_fiore(lir[where(iilir)])
+;lxir[where(iilir)] = lxir_chen(lir[where(iilir)],/scatter)
+lxir[where(iilir)] = lxir_fiore(lir[where(iilir)],/scatter)
 
 ;; convert LX(LIR) to FX( LX(LIR) ) for flux-limit plots
 ;; erg/s to erg/s/cm^2
