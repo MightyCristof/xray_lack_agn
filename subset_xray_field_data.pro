@@ -12,7 +12,7 @@ sav_str = (strsplit(sav_str,'.gz',/extract,/regex)).toArray()
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; CHANDRA MASTER
+;; CHANDRA MASTERx
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Chandra Master Path
@@ -37,9 +37,7 @@ arch_cha = arch_cha[where(arch_cha.status eq 'ARCHIVED' or arch_cha.status eq 'O
 arch_cha = arch_cha[where(arch_cha.detector eq 'ACIS-I',/null)]
 ;; ACIS-I FOV is 16.9'x16.9'
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html
-inner_rad_cha = 16.9/2.
-outer_rad_cha = sqrt(2*inner_rad_cha^2)
-fov_cha = inner_rad_cha*60.
+fov_cha = 16.9/2.*60.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
