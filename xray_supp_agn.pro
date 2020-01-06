@@ -107,7 +107,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; raw NH distribution
 if keyword_set(nhdist) then begin
-    compute_nh_distribution
+    compute_nh_distribution,/min_nh
     nkeys--
 endif
 load_vars,'nh_dist.sav','_nhdist'

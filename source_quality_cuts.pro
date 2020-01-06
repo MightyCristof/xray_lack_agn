@@ -69,7 +69,7 @@ iisn = 'IISN'+xfield
 ;; S/N cut on X-ray fluxes
 for f = 0,nfield-1 do begin
     re = execute(sn[f]+' = FLX'+xfield[f]+'/ERR'+xfield[f])
-    re = execute(iisn[f]+' = SN'+xfield[f]+' ge 2.')
+    re = execute(iisn[f]+' = SN'+xfield[f]+' ge 3.')
 endfor
 
 sav_vars = [sav_vars,sn]
@@ -90,8 +90,8 @@ endfor
 iicntr = 'IICNTR'+xfield
 iioffa = 'IIOFFA'+xfield
 for f = 0,nfield-1 do begin 
-    re = execute(iicntr[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' le FOV'+xfield[f]+'/sqrt(2.)')
-    re = execute(iioffa[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' gt FOV'+xfield[f]+'/sqrt(2.)')
+    re = execute(iicntr[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' le EFF'+xfield[f])
+    re = execute(iioffa[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' gt EFF'+xfield[f])
 endfor
 
 sav_vars = [sav_vars]

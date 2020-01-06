@@ -1,4 +1,4 @@
-PRO compute_nh_distribution
+PRO compute_nh_distribution, MIN_NH = min_nh
 
 
 common _det_wac
@@ -7,12 +7,13 @@ common _quality
 common _lum_ratio
 
 
+;; histogram bin size
 binsz = 0.2
 
 ;; POWER-LAW MODEL
 ;; NH distribution from all det_powerections/non_power-det_powerections
-nhxdet_power = ll2nh(llxdet)
-nhxnon_power = ll2nh(llxnon)
+nhxdet_power = ll2nh(llxdet,model='power',gal_min=min_nh)
+nhxnon_power = ll2nh(llxnon,model='power',gal_min=min_nh)
 
 yhist_det_power = histogram(nhxdet_power[where(iiagn_det)],locations=xhist_det_power,bin=binsz)
 yhist_non_power = histogram(nhxnon_power[where(iiagn_non)],locations=xhist_non_power,bin=binsz)
@@ -22,8 +23,8 @@ xhist_non_power = [xhist_non_power[0]-binsz,xhist_non_power,xhist_non_power[-1]+
 yhist_det_power = [0.,yhist_det_power,0.]
 yhist_non_power = [0.,yhist_non_power,0.]
 
-sav_vars = ['BINSZ','NHXDET_POWER','NHXNON_POWER', $
-                    'YHIST_DET_POWER','XHIST_DET_POWER','YHIST_NON_POWER','XHIST_NON_POWER']
+sav_vars = ['BINSZ','MIN_NH','NHXDET_POWER','NHXNON_POWER', $
+                             'YHIST_DET_POWER','XHIST_DET_POWER','YHIST_NON_POWER','XHIST_NON_POWER']
 sav_inds = []
 
 ;; construct distributions by type WAC/Remaining
@@ -55,8 +56,8 @@ sav_inds = [sav_inds,'IIWDET_POWER','IIWNON_POWER','IIRDET_POWER','IIRNON_POWER'
 
 ;; BORUS MODEL
 ;; NH distribution from all det_powerections/non_power-det_powerections
-nhxdet_borus = ll2nh(llxdet,model='BORUS')
-nhxnon_borus = ll2nh(llxnon,model='BORUS')
+nhxdet_borus = ll2nh(llxdet,model='BORUS',gal_min=min_nh)
+nhxnon_borus = ll2nh(llxnon,model='BORUS',gal_min=min_nh)
 
 yhist_det_borus = histogram(nhxdet_borus[where(iiagn_det)],locations=xhist_det_borus,bin=binsz)
 yhist_non_borus = histogram(nhxnon_borus[where(iiagn_non)],locations=xhist_non_borus,bin=binsz)

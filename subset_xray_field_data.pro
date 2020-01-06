@@ -24,7 +24,7 @@ arch_cha = mrdfits(mast_path_cha,1)
 ;; Master Catalog is updated more frequently than CSC2! 
 ;; avoid spurious non-detections!
 cat_cha = mrdfits(cat_path_cha,1)
-;; use only OBSID that are in cat_chaalots
+;; use only OBSID that are in catalogs
 mast_id_cha = arch_cha.obsid
 cat_id_cha = cat_cha[where(cat_cha.instrument eq 'ACIS',/null)].obsid
 cat_id_cha = cat_id_cha[uniq(cat_id_cha,sort(cat_id_cha))]
@@ -35,9 +35,11 @@ arch_cha = arch_cha[where(iiarch_cha,/null)]
 ;; use only arch_chaived sources
 arch_cha = arch_cha[where(arch_cha.status eq 'ARCHIVED' or arch_cha.status eq 'OBSERVED',/null)]
 arch_cha = arch_cha[where(arch_cha.detector eq 'ACIS-I',/null)]
-;; ACIS-I FOV is 16'x16'
+;; ACIS-I FOV is 16.9'x16.9'
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html
-fov_cha = 16./2.*60.
+inner_rad_cha = 16.9/2.
+outer_rad_cha = sqrt(2*inner_rad_cha^2)
+fov_cha = inner_rad_cha*60.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -53,7 +55,7 @@ arch_xmm = mrdfits(mast_path_xmm,1)
 ;; Master cat_xmmalog is updated more frequently than 3XMM-DR8! 
 ;; avoid spurious non-detections!
 cat_xmm = mrdfits(cat_path_xmm,1)
-;; use only OBSID that are in cat_xmmalots
+;; use only OBSID that are in catalogs
 mast_id_xmm = arch_xmm.obsid
 cat_id_xmm = cat_xmm.obs_id
 cat_id_xmm = cat_id_xmm[uniq(cat_id_xmm,sort(cat_id_xmm))]
@@ -71,7 +73,7 @@ iimode = strmatch(arch_xmm.pn_mode,'*FLG*',/fold) or $                          
 arch_xmm = arch_xmm[where(iimode,/null)]
 ;; XMM PN MOS FOV is ~27.5'x27.5'; use FOV inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/xmm/xmm.html
-fov_xmm = 27.5/2.*60.
+fov_xmm = 33./2.*60.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -82,7 +84,7 @@ fov_xmm = 27.5/2.*60.
 mast_path = '/Users/ccarroll/Research/surveys/NuSTAR/*master*.fits'
 arch_nst = mrdfits(mast_path,1)
 cat_id = create_nustar_master_obsid_list()
-;; use only OBSID that are in catalots
+;; use only OBSID that are in catalogs
 mast_id = arch_nst.obsid
 match,mast_id,cat_id,imast,icat
 iiarch = bytarr(n_elements(arch_nst))

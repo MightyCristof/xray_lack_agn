@@ -1,10 +1,14 @@
 FUNCTION ll2nh, in_arr, $
                 LUM_OUT = lum_out, $
                 MODEL = model, $
+                GAL_MIN = gal_min, $
                 VERBOSE = verbose
 
 
-if ~keyword_set(model) then model = 'POWER'
+if ~keyword_set(model) then begin
+    print, 'NO MODEL SET. RUNNING POWER LAW MODEL'
+    model = 'POWER'
+endif
 out_arr = dblarr(n_elements(in_arr))-9999.
 
 ;; Following NH & LL computed with BORUS
@@ -17,6 +21,12 @@ if (strupcase(model) eq 'BORUS') then begin
 endif else if (strupcase(model) eq 'POWER') then begin
     if keyword_set(verbose) then print, 'MODEL:  POWLAW'
     ll = [0.0000000,-3.4647453e-06,-9.6075680e-06,-2.0538313e-05,-3.9974826e-05,-7.4533979e-05,-0.00013598264,-0.00024523369,-0.00043943864,-0.00078456120,-0.0013975610,-0.0024853603,-0.0044125784,-0.0078171388,-0.013801024,-0.024225027,-0.042105928,-0.071991821,-0.11992454,-0.19252437,-0.29635834,-0.44201558,-0.65346850,-0.97697257,-1.4932660,-2.3383189,-3.7380739,-6.0811486,-10.059617,-16.908176,-28.845231]
+endif
+
+if keyword_set(gal_min) then begin
+    igal_min = where(nh ge 21.)
+    nh = nh[igal_min]
+    ll = ll[igal_min]
 endif
 
 ;; Calculate either NH->L/L -OR- L/L->NH
@@ -41,7 +51,7 @@ endif else begin
     iunb = where(iiunb,ctunb)
     if (ctbnd gt 0.) then out_arr[ibnd] = interpol(nh,ll,in_arr[ibnd])
     if (ctunb gt 0.) then begin
-        out_arr[iunb[where(in_arr[iunb] gt ll[0],/NULL)]] = 18.
+        out_arr[iunb[where(in_arr[iunb] gt ll[0],/NULL)]] = 21.
         out_arr[iunb[where(in_arr[iunb] lt ll[-1],/NULL)]] = 26.
     endif
 endelse

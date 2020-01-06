@@ -1,3 +1,7 @@
+;; FOV 70% Effective Area
+;; CHA - https://cxc.harvard.edu/proposer/POG/html/chap4.html#tth_sEc4.2.2
+;; XMM - https://heasarc.gsfc.nasa.gov/docs/xmm/uhb/effareaoffaxis.html
+;; NST - https://heasarc.gsfc.nasa.gov/docs/nustar/nustar_obsguide.pdf
 PRO fit_catalog_flim, MULTI_SN = multi_sn, $
                       PLT = plt
 
@@ -11,128 +15,127 @@ common _det_nst
 common _softx
 
 
-;;----------------------------------------------------------------------------------------
-;; X-RAY flux_inf LIMITS
-;;----------------------------------------------------------------------------------------
-;clean_cha = clean_source_chandra(cha)
-;clean_xmm = clean_source_xmm(xmm)
-;clean_nst = clean_source_nustar(nst)
-;;----------------------------------------------------------------------------------------
 ;; Energy band 2-10 keV
 cat_exp = 'CAT_EXP'+xfield
 cat_flx = 'CAT_FLX'+xfield
 cat_err = 'CAT_ERR'+xfield
-cat_lim = 'CAT_LIM'+xfield
+;; position
+cat_ra = 'CAT_RA'+xfield
+cat_dec = 'CAT_DEC'+xfield
+;; used
+iimast = 'IIMAST'+xfield
+cat_fov = 'FOV'+xfield
+;; FOV 70% effective area
+eff_fov = 'EFF'+xfield
+eff_cha = 7.*60.
+eff_xmm = 7.*60.
+eff_nst = 5.*60.
 
 for f = 0,nfield-1 do begin
+    ;; choose instrument
     cat_fld = (strsplit(xfield[f],'_',/extract))[0]
     re = execute('ncat = n_elements('+cat_fld+')')
+    ;; initialize instrument arrays
     re = execute(cat_exp[f]+' = dblarr(ncat)')
     re = execute(cat_flx[f]+' = dblarr(ncat)')
     re = execute(cat_err[f]+' = dblarr(ncat)')
+    re = execute(cat_ra[f]+' = dblarr(ncat)')
+    re = execute(cat_dec[f]+' = dblarr(ncat)')
+    ;; energy conversion factors per instrument
     conv = xconv.(f)
+    ;; sort energy bands by minimum conversion factor
     iorder = sort(abs((conv-conv[ixband[f]])/conv[ixband[f]]))
+    ;; use only one filter for each source; boolean flag
+    iiused = bytarr(ncat)
+    ;; loop through energy bands
     for b = 0,nxband[f]-1 do begin
-        re = execute('iuse = where('+cat_fld+'.'+tt.(f)[iorder[b]]+' gt 0. and '+cat_fld+'.'+ff.(f)[iorder[b]]+' gt 0. and '+cat_exp[f]+' eq 0.,nuse)')
-        if (nuse gt 0.) then begin
-            re = execute(cat_exp[f]+'[iuse] = '+cat_fld+'[iuse].'+tt.(f)[iorder[b]])
-            re = execute(cat_flx[f]+'[iuse] = '+cat_fld+'[iuse].'+ff.(f)[iorder[b]]+' * conv[iorder[b]]')
-            re = execute(cat_err[f]+'[iuse] = '+cat_fld+'[iuse].'+ee.(f)[iorder[b]]+' * conv[iorder[b]]')
+        ;; detection exists
+        re = execute('iifill = '+cat_fld+'.'+tt.(f)[iorder[b]]+' gt 0. and '+cat_fld+'.'+ff.(f)[iorder[b]]+' gt 0. and '+cat_exp[f]+' eq 0.')
+        ;; source is not already accounted for
+        ifill = where(iifill eq 1 and iiused eq 0,nfill)
+        iiused[ifill] = 1
+        if (nfill gt 0.) then begin
+            re = execute(cat_exp[f]+'[ifill] = '+cat_fld+'[ifill].'+tt.(f)[iorder[b]])
+            re = execute(cat_flx[f]+'[ifill] = '+cat_fld+'[ifill].'+ff.(f)[iorder[b]]+' * conv[iorder[b]]')
+            re = execute(cat_err[f]+'[ifill] = '+cat_fld+'[ifill].'+ee.(f)[iorder[b]]+' * conv[iorder[b]]')
         endif
     endfor
+    ;; grab positions for used sources
+    iused = where(iiused,nused)
+    if (nused gt 0.) then begin
+        re = execute(cat_ra[f]+'[iused] = '+cat_fld+'[iused].ra')
+        re = execute(cat_dec[f]+'[iused] = '+cat_fld+'[iused].dec')
+    endif
+    ;; sort by exposure time
     re = execute('isort = sort('+cat_exp[f]+')')
     re = execute(cat_exp[f]+' = '+cat_exp[f]+'[isort]')
     re = execute(cat_flx[f]+' = '+cat_flx[f]+'[isort]')
     re = execute(cat_err[f]+' = '+cat_err[f]+'[isort]')
+    re = execute(cat_ra[f]+' = '+cat_ra[f]+'[isort]')
+    re = execute(cat_dec[f]+' = '+cat_dec[f]+'[isort]')
+    ;; S/N cut
     re = execute('cat_sn = '+cat_flx[f]+'/'+cat_err[f])
-    re = execute('icat_sn = where(cat_sn ge 2. and '+cat_exp[f]+' gt 0.,ng)')
+    re = execute('icat_sn = where(cat_sn ge 3. and '+cat_exp[f]+' gt 0.,ng)')
     if (ng eq 0.) then stop
     re = execute(cat_exp[f]+' = '+cat_exp[f]+'[icat_sn]')
     re = execute(cat_flx[f]+' = '+cat_flx[f]+'[icat_sn]')
     re = execute(cat_err[f]+' = '+cat_err[f]+'[icat_sn]')
+    re = execute(cat_ra[f]+' = '+cat_ra[f]+'[icat_sn]')
+    re = execute(cat_dec[f]+' = '+cat_dec[f]+'[icat_sn]')
+    ;; distance from field center (on-axis)
+    re = execute('iimast'+xfield[f]+' = obs_cntr'+xfield[f]+'('+cat_ra[f]+','+cat_dec[f]+','+cat_exp[f]+','+cat_fov[f]+','+eff_fov[f]+')')
+    re = execute('imast = where(iimast'+xfield[f]+',nmast)')
+    if (nmast eq 0.) then stop
+    re = execute(cat_exp[f]+' = '+cat_exp[f]+'[imast]')
+    re = execute(cat_flx[f]+' = '+cat_flx[f]+'[imast]')
+    re = execute(cat_err[f]+' = '+cat_err[f]+'[imast]')
 endfor
 
-for f = 0,nfield-1 do re = execute(cat_lim[f]+' = xray_flux_limit('+cat_exp[f]+','+cat_flx[f]+','+cat_err[f]+')')
+;; flux limit
+cat_lim = 'CAT_LIM'+xfield
+for f = 0,nfield-1 do re = execute(cat_lim[f]+' = xray_flux_limit('+cat_exp[f]+','+cat_flx[f]+','+cat_err[f]+',6)')
 
-sav_vars = [cat_exp,cat_flx,cat_err,cat_lim]
+sav_vars = [cat_exp,cat_flx,cat_err,cat_lim,eff_fov]
 sav_inds = []
 
 if keyword_set(multi_sn) then begin
-    ;; S/N ³ 3
-    cat_exp3 = 'CAT_EXP3'+xfield
-    cat_flx3 = 'CAT_FLX3'+xfield
-    cat_err3 = 'CAT_ERR3'+xfield
-    cat_lim3 = 'CAT_LIM3'+xfield
-
-    for f = 0,nfield-1 do begin
-        cat_fld = (strsplit(xfield[f],'_',/extract))[0]
-        re = execute('ncat = n_elements('+cat_fld+')')
-        re = execute(cat_exp3[f]+' = dblarr(ncat)')
-        re = execute(cat_flx3[f]+' = dblarr(ncat)')
-        re = execute(cat_err3[f]+' = dblarr(ncat)')
-        conv = xconv.(f)
-        iorder = sort(abs((conv-conv[ixband[f]])/conv[ixband[f]]))
-        for b = 0,nxband[f]-1 do begin
-            re = execute('iuse = where('+cat_fld+'.'+tt.(f)[iorder[b]]+' gt 0. and '+cat_fld+'.'+ff.(f)[iorder[b]]+' gt 0. and '+cat_exp3[f]+' eq 0.,nuse)')
-            if (nuse gt 0.) then begin
-                re = execute(cat_exp3[f]+'[iuse] = '+cat_fld+'[iuse].'+tt.(f)[iorder[b]])
-                re = execute(cat_flx3[f]+'[iuse] = '+cat_fld+'[iuse].'+ff.(f)[iorder[b]]+' * conv[iorder[b]]')
-                re = execute(cat_err3[f]+'[iuse] = '+cat_fld+'[iuse].'+ee.(f)[iorder[b]]+' * conv[iorder[b]]')
-            endif
-        endfor
-        re = execute('isort = sort('+cat_exp3[f]+')')
-        re = execute(cat_exp3[f]+' = '+cat_exp3[f]+'[isort]')
-        re = execute(cat_flx3[f]+' = '+cat_flx3[f]+'[isort]')
-        re = execute(cat_err3[f]+' = '+cat_err3[f]+'[isort]')
-        re = execute('cat_sn3 = '+cat_flx3[f]+'/'+cat_err3[f])
-        re = execute('icat_sn3 = where(cat_sn3 ge 3. and '+cat_exp3[f]+' gt 0.,ng)')
-        if (ng eq 0.) then stop
-        re = execute(cat_exp3[f]+' = '+cat_exp3[f]+'[icat_sn3]')
-        re = execute(cat_flx3[f]+' = '+cat_flx3[f]+'[icat_sn3]')
-        re = execute(cat_err3[f]+' = '+cat_err3[f]+'[icat_sn3]')
-    endfor
-
-    for f = 0,nfield-1 do re = execute(cat_lim3[f]+' = xray_flux_limit('+cat_exp3[f]+','+cat_flx3[f]+','+cat_err3[f]+')')
-
-    sav_vars = [sav_vars,cat_exp3,cat_flx3,cat_err3,cat_lim3]
-    sav_inds = [sav_inds]
+    ;;; S/N ³ 3
+    ;cat_exp3 = 'CAT_EXP3'+xfield
+    ;cat_flx3 = 'CAT_FLX3'+xfield
+    ;cat_err3 = 'CAT_ERR3'+xfield
+    ;;; S/N cut
+    ;for f = 0,nfield-1 do begin
+    ;    re = execute('cat_sn = '+cat_flx[f]+'/'+cat_err[f])
+    ;    re = execute('icat_sn = where(cat_sn ge 3.,ng)')
+    ;    if (ng eq 0.) then stop
+    ;    re = execute(cat_exp3[f]+' = '+cat_exp[f]+'[icat_sn]')
+    ;    re = execute(cat_flx3[f]+' = '+cat_flx[f]+'[icat_sn]')
+    ;    re = execute(cat_err3[f]+' = '+cat_err[f]+'[icat_sn]')
+    ;endfor
+    ;;; flux limit
+    ;cat_lim3 = 'CAT_LIM3'+xfield
+    ;for f = 0,nfield-1 do re = execute(cat_lim3[f]+' = xray_flux_limit('+cat_exp3[f]+','+cat_flx3[f]+','+cat_err3[f]+',6)')
+    ;;; save vars
+    ;sav_vars = [sav_vars,cat_exp3,cat_flx3,cat_err3,cat_lim3]
+    ;sav_inds = [sav_inds]
 
     ;; S/N ³ 5
     cat_exp5 = 'CAT_EXP5'+xfield
     cat_flx5 = 'CAT_FLX5'+xfield
     cat_err5 = 'CAT_ERR5'+xfield
-    cat_lim5 = 'CAT_LIM5'+xfield
-
+    ;; S/N cut
     for f = 0,nfield-1 do begin
-        cat_fld = (strsplit(xfield[f],'_',/extract))[0]
-        re = execute('ncat = n_elements('+cat_fld+')')
-        re = execute(cat_exp5[f]+' = dblarr(ncat)')
-        re = execute(cat_flx5[f]+' = dblarr(ncat)')
-        re = execute(cat_err5[f]+' = dblarr(ncat)')
-        conv = xconv.(f)
-        iorder = sort(abs((conv-conv[ixband[f]])/conv[ixband[f]]))
-        for b = 0,nxband[f]-1 do begin
-            re = execute('iuse = where('+cat_fld+'.'+tt.(f)[iorder[b]]+' gt 0. and '+cat_fld+'.'+ff.(f)[iorder[b]]+' gt 0. and '+cat_exp5[f]+' eq 0.,nuse)')
-            if (nuse gt 0.) then begin
-                re = execute(cat_exp5[f]+'[iuse] = '+cat_fld+'[iuse].'+tt.(f)[iorder[b]])
-                re = execute(cat_flx5[f]+'[iuse] = '+cat_fld+'[iuse].'+ff.(f)[iorder[b]]+' * conv[iorder[b]]')
-                re = execute(cat_err5[f]+'[iuse] = '+cat_fld+'[iuse].'+ee.(f)[iorder[b]]+' * conv[iorder[b]]')
-            endif
-        endfor
-        re = execute('isort = sort('+cat_exp5[f]+')')
-        re = execute(cat_exp5[f]+' = '+cat_exp5[f]+'[isort]')
-        re = execute(cat_flx5[f]+' = '+cat_flx5[f]+'[isort]')
-        re = execute(cat_err5[f]+' = '+cat_err5[f]+'[isort]')
-        re = execute('cat_sn5 = '+cat_flx5[f]+'/'+cat_err5[f])
-        re = execute('icat_sn5 = where(cat_sn5 ge 5. and '+cat_exp5[f]+' gt 0.,ng)')
+        re = execute('cat_sn = '+cat_flx[f]+'/'+cat_err[f])
+        re = execute('icat_sn = where(cat_sn ge 5.,ng)')
         if (ng eq 0.) then stop
-        re = execute(cat_exp5[f]+' = '+cat_exp5[f]+'[icat_sn5]')
-        re = execute(cat_flx5[f]+' = '+cat_flx5[f]+'[icat_sn5]')
-        re = execute(cat_err5[f]+' = '+cat_err5[f]+'[icat_sn5]')
+        re = execute(cat_exp5[f]+' = '+cat_exp[f]+'[icat_sn]')
+        re = execute(cat_flx5[f]+' = '+cat_flx[f]+'[icat_sn]')
+        re = execute(cat_err5[f]+' = '+cat_err[f]+'[icat_sn]')
     endfor
-
-    for f = 0,nfield-1 do re = execute(cat_lim5[f]+' = xray_flux_limit('+cat_exp5[f]+','+cat_flx5[f]+','+cat_err5[f]+')')
-
+    ;; flux limit
+    cat_lim5 = 'CAT_LIM5'+xfield
+    for f = 0,nfield-1 do re = execute(cat_lim5[f]+' = xray_flux_limit('+cat_exp5[f]+','+cat_flx5[f]+','+cat_err5[f]+',6)')
+    ;; save vars
     sav_vars = [sav_vars,cat_exp5,cat_flx5,cat_err5,cat_lim5]
     sav_inds = [sav_inds]
 endif
