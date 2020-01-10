@@ -24,22 +24,24 @@ common _clean_nst
 ;;----------------------------------------------------------------------------------------
 ;; redshift range 0 < z ²Ê0.6 for photo-zs
 ;; redshift range 0 < z ²Ê1.o for spec-zs
-ztype = zorig(zarr)
-iizp = z gt 0. and z le 0.6 and strmatch(ztype,'ZP')
-iizs = z gt 0. and z le 1.0 and strmatch(ztype,'ZS*')
-iiz = iizp or iizs
+;; moved to PRE-FITTING
+;ztype = zorig(zarr)
+;iizp = z gt 0. and z le 0.6 and strmatch(ztype,'ZP')
+;iizs = z gt 0. and z le 1.0 and strmatch(ztype,'ZS*')
+;iiz = iizp or iizs
 ;; SED chi-square goodness of fit
 chi = reform(param[-2,*])
 dof = reform(param[-1,*])
 rchi = chi/dof
 iichi = rchi le 20.
 
-;; indices of WISE photometry
-iwise = where(strmatch(band,'WISE?',/fold))
 ;; ensure WISE photometry exists
-sn_wise = flux[iwise,*]/e_flux[iwise,*]
-totsn = total(sn_wise ge 1.,1)          ;; all WISE photometry must exist and S/N ³ 1
-iisnw = totsn ge 4.                      ;; note: all non-finite sn_wise == -NaN
+;; MOVED TO PRE-FITTING
+;; indices of WISE photometry
+;iwise = where(strmatch(band,'WISE?',/fold))
+;sn_wise = flux[iwise,*]/e_flux[iwise,*]
+;totsn = total(sn_wise ge 1.,1)          ;; all WISE photometry must exist and S/N ³ 1
+;iisnw = totsn ge 4.                      ;; note: all non-finite sn_wise == -NaN
 
 ;; separate IR bright and weak sources
 iiirb = lir ge 42.
@@ -52,10 +54,13 @@ iiirw = lir gt 0. and lir lt 42.
 iifagn = agnf15.obs ge 0.7
 
 ;; passes all quality cuts, IR bright, and constrained E(B-V)
-iiagn = iiz and iichi and iisnw and iiirb and iifagn;iiirc and iiebv and iifagn
+;iiagn = iiz and iichi and iisnw and iiirb and iifagn;iiirc and iiebv and iifagn
+iiagn = iichi and iiirb and iifagn
 
-sav_vars = ['ZTYPE','CHI','DOF','RCHI','SN_WISE','TOTSN']
-sav_inds = ['IIZP','IIZS','IIZ','IICHI','IWISE','IISNW','IIIRB','IIIRW','IIFAGN','IIAGN'];'IIIRC','IIEBV','IIAGN','IIFAGN']
+;sav_vars = ['ZTYPE','CHI','DOF','RCHI','SN_WISE','TOTSN']
+;sav_inds = ['IIZP','IIZS','IIZ','IICHI','IWISE','IISNW','IIIRB','IIIRW','IIFAGN','IIAGN'];'IIIRC','IIEBV','IIAGN','IIFAGN']
+sav_vars = ['ZTYPE','CHI','DOF','RCHI']
+sav_inds = ['IICHI','IIIRB','IIIRW','IIFAGN','IIAGN'];'IIIRC','IIEBV','IIAGN','IIFAGN']
 
 ;;----------------------------------------------------------------------------------------
 ;; X-ray Catalog Quality Control
