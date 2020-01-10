@@ -92,6 +92,7 @@ endfor
 
 ;; sources within 1/2 FOV
 ;; requires a separate fail flag to account for INF (iioffa =/= ~iicntr)
+;; FOV 70% effective area
 iicntr = 'IICNTR'+xfield
 iioffa = 'IIOFFA'+xfield
 for f = 0,nfield-1 do begin 
