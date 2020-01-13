@@ -2,7 +2,7 @@ PRO load_xray_supp_agn, CURRENT = current
 
 
 if keyword_set(current) then cd, current=data_dir else $
-                             data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20191022_1552'
+                             data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20200113_ebv90'
 print, '*********************************************************************************'
 print, 'PATH: '+data_dir
 print, '*********************************************************************************'

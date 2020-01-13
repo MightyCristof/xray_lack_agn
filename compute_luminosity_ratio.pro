@@ -19,6 +19,13 @@ common _clean_nst
 common _quality
 
 
+;;----------------------------------------------------------------------------------------
+;; COMBINE X-RAY LUMINOSITIES
+;;----------------------------------------------------------------------------------------
+lx = dblarr(nsrc)
+lx[where(lx eq 0. and iiagn_det_cha)] = lx_cha[where(lx eq 0. and iiagn_det_cha)]
+lx[where(lx eq 0. and iiagn_det_xmm)] = lx_xmm[where(lx eq 0. and iiagn_det_xmm)]
+lx[where(lx eq 0. and iiagn_det_nst)] = lx_nst[where(lx eq 0. and iiagn_det_nst)]
 
 ;;----------------------------------------------------------------------------------------
 ;; LUMINOSITY RATIOS -- PROXY FOR OBSCURATION
@@ -48,8 +55,8 @@ endfor
 iixdet = llxdet ne -9999.
 iixnon = llxnon ne -9999.
 
-sav_vars = [lldet,llnon,'LLXDET','LLXNON']
-sav_inds = []
+sav_vars = ['LX',lldet,llnon,'LLXDET','LLXNON']
+sav_inds = ['IIXDET','IIXNON']
 
 
 ;; log E(B-V) for ploting

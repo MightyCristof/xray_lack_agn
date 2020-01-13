@@ -59,7 +59,7 @@ iiagn = iichi and iiirb and iifagn
 
 ;sav_vars = ['ZTYPE','CHI','DOF','RCHI','SN_WISE','TOTSN']
 ;sav_inds = ['IIZP','IIZS','IIZ','IICHI','IWISE','IISNW','IIIRB','IIIRW','IIFAGN','IIAGN'];'IIIRC','IIEBV','IIAGN','IIFAGN']
-sav_vars = ['ZTYPE','CHI','DOF','RCHI']
+sav_vars = ['CHI','DOF','RCHI']
 sav_inds = ['IICHI','IIIRB','IIIRW','IIFAGN','IIAGN'];'IIIRC','IIEBV','IIAGN','IIFAGN']
 
 ;;----------------------------------------------------------------------------------------
