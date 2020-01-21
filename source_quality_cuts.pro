@@ -104,7 +104,7 @@ for f = 0,nfield-1 do begin
 endfor
 
 sav_vars = [sav_vars]
-sav_inds = [sav_inds,iiagn_det,iiagn_drm,iiagn_non,iiagn_nrm
+sav_inds = [sav_inds,iiagn_det,iiagn_drm,iiagn_non,iiagn_nrm]
 
 
 ;; combined raw X-ray detections, sample-catalog matches
