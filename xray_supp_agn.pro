@@ -22,7 +22,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; load SED output
 load_vars,'fits.sav','_fits'
-
+load_vars,'resamp_fits.sav','_resamp'
 ;; re-sample sources only in X-ray fields
 ;; match sample to WISE AGN Catalog
 if keyword_set(infield) then begin
