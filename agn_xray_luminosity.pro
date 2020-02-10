@@ -3,6 +3,7 @@ PRO agn_xray_luminosity, DERED = dered, $
 
 
 common _fits
+common _resamp
 common _inf_cha
 common _inf_xmm
 common _inf_nst
@@ -49,6 +50,10 @@ lir_corr = correct_agn_lum(lir_orig,wave,flux,e_flux,param,objid)
 iicorr = lir_corr ne lir_orig
 lir = lir_corr
 
+;; uncertainty on LIR and IR flux
+e_lir = reform(lir_sigm[1,*])
+e_fir = reform(flx_sigm[1,*])
+
 ;; LX(LIR) from LX-LIR relationship
 lxir = dblarr(nsrc)
 ;lxir[where(iilir)] = lxir_chen(lir[where(iilir)],/scatter)
@@ -61,8 +66,7 @@ dl2 = dlum(z,/sq)
 fxir = dblarr(nsrc)
 fxir[ilir] = 10.^(lxir[ilir])/(4.*!const.pi*dl2[ilir])
 
-
-sav_vars = [sav_vars,'LIR','LXIR','DL2','FXIR']
+sav_vars = [sav_vars,'LIR','E_LIR','E_FIR','LXIR','FXIR','DL2']
 sav_inds = [sav_inds,'IICORR']
 
 
@@ -77,13 +81,11 @@ cat_gamma = [2.0,1.8,1.8]
 lx = 'LX'+xfield
 for i = 0,nfield-1 do begin
     re = execute(lx[i]+' = dblarr(nsrc)')
-    re = execute('idet = where(IIDET'+xfield[i]+',ctdet)')
-    if (ctdet eq 0.) then continue
-    re = execute(lx[i]+'[idet] = alog10((4.*!const.pi*dl2[idet])*(FLX'+xfield[i]+'[idet]*(1+z[idet])^(cat_gamma[i]-2.)))>0.')
+    re = execute('idet = where(IIDET'+xfield[i]+',detct)')
+    if (detct gt 0.) then re = execute(lx[i]+'[idet] = alog10((4.*!const.pi*dl2[idet])*(FLX'+xfield[i]+'[idet]*(1+z[idet])^(cat_gamma[i]-2.)))>0.')
 endfor
 
-
-sav_vars = [sav_vars,'CAT_GAMMA',lx]
+sav_vars = [sav_vars,lx,'CAT_GAMMA']
 sav_inds = [sav_inds]
 
 
