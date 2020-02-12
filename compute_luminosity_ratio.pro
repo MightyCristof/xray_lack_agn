@@ -1,7 +1,8 @@
 PRO compute_luminosity_ratio 
 
 
-common _fits       
+common _fits  
+common _resamp     
 common _inf_cha    
 common _inf_xmm    
 common _inf_nst    
@@ -24,13 +25,23 @@ common _quality
 ;;----------------------------------------------------------------------------------------
 lx = dblarr(nsrc)
 e_lx = dblarr(nsrc)
+loglx = dblarr(nsrc)
+e_loglx = dblarr(nsrc)
 for f = 0,nfield-1 do begin
-    re = execute('ilx = where(lx eq 0. and IIAGN_DET'+xfield[f]+',lxct)')
-    if (lxct gt 0.) then begin
-        re = execute('lx[ilx] = lx'+xfield[f]+'[ilx]')
-        re = execute('e_lx[ilx] = ERR'+xfield[f]+'[ilx]/(alog(10.)*FLX'+xfield[f]+'[ilx])')
+    re = execute('idet_fill = where(lx eq 0. and IIAGN_DET'+xfield[f]+',detct)')
+    if (detct gt 0.) then begin
+        re = execute('x_linear = 10.^lx'+xfield[f]+'[idet_fill]')
+        lx[idet_fill] = alog10(x_linear)
+        ;; include redshift errors
+        re = execute('e_linear = x_linear * sqrt((ERR'+xfield[f]+'[idet_fill]/FLX'+xfield[f]+'[idet_fill])^2. + (red_sigm[1,idet_fill]/red_sigm[0,idet_fill])^2.)')
+        e_lx[idet_fill] = e_linear/(alog(10.)*x_linear)
     endif
 endfor
+
+
+sav_vars = ['LX','E_LX','LOGLX','E_LOGLX']
+sav_inds = []
+
 
 ;;----------------------------------------------------------------------------------------
 ;; LUMINOSITY RATIOS -- PROXY FOR OBSCURATION
