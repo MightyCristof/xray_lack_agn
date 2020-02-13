@@ -2,7 +2,7 @@ PRO load_xray_supp_agn, CURRENT = current
 
 
 if keyword_set(current) then cd, current=data_dir else $
-                             data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20200206_ebv50'
+                             data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20200212_ebv50'
 
 path = 'PATH: '+data_dir
 str = strjoin(make_array(strlen(path),value='*'))
@@ -21,7 +21,7 @@ load_vars,'detections_xmm.sav','_det_xmm'
 load_vars,'detections_nst.sav','_det_nst'
 load_vars,'detections_wac.sav','_det_wac'
 load_vars,'softx_conversions.sav','_softx'   
-load_vars,'catalog_flux_limits.sav','_fluxlim' 
+load_vars,'catalog_flux_limits.sav','_fxlim' 
 load_vars,'../comp_*.sav','_comp'              
 load_vars,'src_luminosity.sav','_agnlum'     
 load_vars,'cleaned_cha.sav','_clean_cha'   

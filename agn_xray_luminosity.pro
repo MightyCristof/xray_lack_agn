@@ -11,7 +11,7 @@ common _det_nst
 common _det_xmm
 common _det_cha
 common _softx
-common _fluxlim
+common _fxlim
 common _comp
 
 
@@ -28,10 +28,8 @@ ilir = where(iilir,nagn,ncomplement=ngal,/null)
 agnf6 = f_agn(6.,param,model=agnm6)
 agnf15 = f_agn(15.,param,model=agnm15)
 
-
 sav_vars = ['EBV','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15']
 sav_inds = ['IILIR']
-
 
 
 ;;----------------------------------------------------------------------------------------
@@ -49,24 +47,29 @@ endif else $
 lcorr = correct_agn_lum(wave,flux,e_flux,param)
 iicorr = lcorr ne 0.
 lir += lcorr
-loglir = alog10(lir)>0
+loglir = alog10(lir)>0.
 
 ;; LX(LIR) from LX-LIR relationship
-lxir = dblarr(nsrc)
-lxir_scat = dblarr(nsrc)
+loglxir = dblarr(nsrc)
+loglxir_scat = dblarr(nsrc)
 ;lxir[where(iilir)] = lxir_chen(lir[where(iilir)],/scatter)
-lxir_rel = lxir_fiore(lir[where(iilir)],/scatter)
-lxir[where(iilir)] = lxir_rel[0,*]
-lxir_scat[where(iilir)] = lxir_rel[1,*]
-
+lxir_rel = lxir_fiore(loglir[where(iilir)],/scatter)
+loglxir[where(iilir)] = lxir_rel[0,*]
+loglxir_scat[where(iilir)] = lxir_rel[1,*]
+lxir = 10.^loglxir
+lxir[where(loglxir eq 0.,/null)] = 0.
+lxir_scat = 10.^loglxir
+lxir_scat[where(loglxir_scat eq 0.,/null)] = 0.
 ;; convert LX(LIR) to FX( LX(LIR) ) for flux-limit plots
 ;; erg/s to erg/s/cm^2
 ;; luminosity distance
 dl2 = dlum(z,/sq)
 fxir = dblarr(nsrc)
-fxir[ilir] = 10.^(lxir[ilir])/(4.*!const.pi*dl2[ilir])
+fxir[ilir] = 10.^(loglxir[ilir])/(4.*!const.pi*dl2[ilir])
+logfxir = alog10(fxir)
+logfxir[where(fxir eq 0.,/null)] = 0.
 
-sav_vars = [sav_vars,'LIR','LXIR','LXIR_SCAT','FXIR','DL2']
+sav_vars = [sav_vars,'LCORR','LIR','LOGLIR','LXIR','LOGLXIR','LOGLXIR_SCAT','DL2','FXIR','LOGFXIR']
 sav_inds = [sav_inds,'IICORR']
 
 
@@ -97,7 +100,7 @@ for i = 0,nfield-1 do begin
     endif
 endfor
 
-sav_vars = [sav_vars,lx,e_lx,loglx,e_loglx,'CAT_GAMMA']
+sav_vars = [sav_vars,'CAT_GAMMA',lx,e_lx,loglx,e_loglx]
 sav_inds = [sav_inds]
 
 
@@ -105,21 +108,26 @@ sav_inds = [sav_inds]
 ;; INTERPOLATE FLUX LIMIT FLUX & LUMINOSITY
 ;;----------------------------------------------------------------------------------------
 ;; 2-10keV
-flim = 'FLIM'+xfield        ;; flux limit at source
+fxlim = 'FXLIM'+xfield        ;; flux limit at source
+logfxlim = 'LOG'+fxlim
 lxlim = 'LXLIM'+xfield      ;; luminosity at flux limit
-flim_cs = 'FLIM_CS'+xfield  ;; flux-limit function coefficients 
+loglxlim = 'LOG'+lxlim
+fxlim_cs = 'FXLIM_CS'+xfield  ;; flux-limit function coefficients 
 degr = [6,6,1]              ;; degree of polynomial to fit flux-limit
 for i = 0,nfield-1 do begin
-    re = execute(flim[i]+' = dblarr(nsrc)')
+    re = execute(fxlim[i]+' = dblarr(nsrc)')
+    re = execute(logfxlim[i]+' = dblarr(nsrc)')
     re = execute(lxlim[i]+' = dblarr(nsrc)')
-    re = execute(flim_cs[i]+' = dblarr(degr[i])')
+    re = execute(loglxlim[i]+' = dblarr(nsrc)')
+    re = execute(fxlim_cs[i]+' = dblarr(degr[i])')
     re = execute('isrc = where(iiinf'+xfield[i]+')')
-    re = execute(flim[i]+'[isrc] = extrapolate_flim(CAT_LIM'+xfield[i]+',CAT_EXP'+xfield[i]+',TEXP'+xfield[i]+'[isrc],degr[i],FLIM_CS='+flim_cs[i]+')')
-    re = execute(lxlim[i]+'[isrc] = alog10(4.*!const.pi*dl2[isrc]*FLIM'+xfield[i]+'[isrc])>0.')
+    re = execute(fxlim[i]+'[isrc] = extrapolate_flim(CAT_LIM'+xfield[i]+',CAT_EXP'+xfield[i]+',TEXP'+xfield[i]+'[isrc],degr[i],FLIM_CS='+fxlim_cs[i]+')')
+    re = execute(logfxlim[i]+'[isrc] = alog10('+fxlim[i]+'[isrc])')
+    re = execute(lxlim[i]+'[isrc] = 4.*!const.pi*dl2[isrc]*'+fxlim[i]+'[isrc]')
+    re = execute(loglxlim[i]+'[isrc] = alog10('+lxlim[i]+'[isrc])')
 endfor
 
-
-sav_vars = [sav_vars,flim,lxlim,flim_cs,'DEGR']
+sav_vars = [sav_vars,'DEGR',fxlim_cs,fxlim,logfxlim,lxlim,loglxlim]
 sav_inds = [sav_inds]
 
 

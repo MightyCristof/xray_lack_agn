@@ -1,22 +1,22 @@
 PRO xray_supp_agn, INFIELD = infield, $
                    DETECT = detect, $
                    SOFTX = softx, $
-                   FLIM = flim, $
+                   FLXLIM = flxlim, $
                    LUM = lum, $
                    CLEAN = clean, $
                    QUALITY = quality, $
-                   RATIO = ratio, $
+                   LRATIO = lratio, $
                    NHDIST = nhdist
 
 
 nkeys = n_elements(infield) + $
         n_elements(detect) + $
         n_elements(softx) + $
-        n_elements(flim) + $
+        n_elements(flxlim) + $
         n_elements(lum) + $
         n_elements(clean) + $
         n_elements(quality) + $
-        n_elements(ratio) + $
+        n_elements(lratio) + $
         n_elements(nhdist)
 if (nkeys eq 0) then GOTO, NO_KEYS
 
@@ -60,11 +60,11 @@ load_vars,'softx_conversions.sav','_softx'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; estimate X-ray flux limits from catalogs
-if keyword_set(flim) then begin
-    fit_catalog_flim,/multi_sn;,/plt
+if keyword_set(flxlim) then begin
+    fit_catalog_flxlim,/multi_sn;,/plt
     nkeys--
 endif
-load_vars,'catalog_flux_limits.sav','_fluxlim'
+load_vars,'catalog_flux_limits.sav','_fxlim'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; calculate IR luminosities and X-ray conversions
@@ -98,7 +98,7 @@ load_vars,'quality_src.sav','_quality'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; luminosity ratio LX/LXIR
-if keyword_set(ratio) then begin
+if keyword_set(lratio) then begin
     compute_luminosity_ratio
     nkeys--
 endif

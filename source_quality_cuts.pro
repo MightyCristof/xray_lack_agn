@@ -1,7 +1,8 @@
 PRO source_quality_cuts
 
 
-common _fits        
+common _fits      
+common _resamp  
 common _inf_cha     
 common _inf_xmm     
 common _inf_nst     
@@ -10,7 +11,7 @@ common _det_xmm
 common _det_nst     
 common _det_wac     
 common _softx       
-common _fluxlim     
+common _fxlim     
 common _comp        
 common _agnlum     
 common _clean_cha   
@@ -67,11 +68,11 @@ sav_inds = [sav_inds,iisn]
 
 ;; sources above the flux limit
 ;; requires a separate fail flag to account for FLIM exists (iifail =/= ~iipass)
-iiflim_pass = 'IIFLIM_PASS'+xfield
-iiflim_fail = 'IIFLIM_FAIL'+xfield
+iifxlim_pass = 'IIFXLIM_PASS'+xfield
+iifxlim_fail = 'IIFXLIM_FAIL'+xfield
 for f = 0,nfield-1 do begin
-    re = execute(iiflim_pass[f]+' = iilir and FLIM'+xfield[f]+' gt 0. and fxir ge FLIM'+xfield[f])
-    re = execute(iiflim_fail[f]+' = iilir and FLIM'+xfield[f]+' gt 0. and fxir lt FLIM'+xfield[f])
+    re = execute(iifxlim_pass[f]+' = iilir and FXLIM'+xfield[f]+' gt 0. and fxir ge FXLIM'+xfield[f])
+    re = execute(iifxlim_fail[f]+' = iilir and FXLIM'+xfield[f]+' gt 0. and fxir lt FXLIM'+xfield[f])
 endfor
 
 ;; sources within 1/2 FOV
@@ -85,7 +86,7 @@ for f = 0,nfield-1 do begin
 endfor
 
 sav_vars = [sav_vars]
-sav_inds = [sav_inds,iiflim_pass,iiflim_fail,iicntr,iioffa]
+sav_inds = [sav_inds,iifxlim_pass,iifxlim_fail,iicntr,iioffa]
 
 
 ;;----------------------------------------------------------------------------------------
@@ -99,8 +100,8 @@ iiagn_nrm = 'IIAGN_NRM'+xfield
 for f = 0,nfield-1 do begin
     re = execute(iiagn_det[f]+' = IIINF'+xfield[f]+' and IIQUAL and IIDET'+xfield[f]+' and IICLEAN'+xfield[f]+' and IISN'+xfield[f]+' and IICNTR'+xfield[f])
     re = execute(iiagn_drm[f]+' = IIINF'+xfield[f]+' and IIQUAL and IIDET'+xfield[f]+' and IICLEAN'+xfield[f]+' and (~IISN'+xfield[f]+' or IIOFFA'+xfield[f]+')')
-    re = execute(iiagn_non[f]+' = IIINF'+xfield[f]+' and IIQUAL and ~IIDET'+xfield[f]+' and IIFLIM_PASS'+xfield[f]+' and IICNTR'+xfield[f])
-    re = execute(iiagn_nrm[f]+' = IIINF'+xfield[f]+' and IIQUAL and ~IIDET'+xfield[f]+' and (IIFLIM_FAIL'+xfield[f]+' or IIOFFA'+xfield[f]+')')
+    re = execute(iiagn_non[f]+' = IIINF'+xfield[f]+' and IIQUAL and ~IIDET'+xfield[f]+' and IIFXLIM_PASS'+xfield[f]+' and IICNTR'+xfield[f])
+    re = execute(iiagn_nrm[f]+' = IIINF'+xfield[f]+' and IIQUAL and ~IIDET'+xfield[f]+' and (IIFXLIM_FAIL'+xfield[f]+' or IIOFFA'+xfield[f]+')')
 endfor
 
 sav_vars = [sav_vars]

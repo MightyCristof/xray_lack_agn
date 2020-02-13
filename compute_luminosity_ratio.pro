@@ -11,7 +11,7 @@ common _det_xmm
 common _det_nst 
 common _det_wac    
 common _softx      
-common _fluxlim    
+common _fxlim    
 common _comp       
 common _agnlum    
 common _clean_cha
@@ -30,14 +30,12 @@ e_loglx = dblarr(nsrc)
 for f = 0,nfield-1 do begin
     re = execute('idet_fill = where(lx eq 0. and IIAGN_DET'+xfield[f]+',detct)')
     if (detct gt 0.) then begin
-        re = execute('x_linear = 10.^lx'+xfield[f]+'[idet_fill]')
-        lx[idet_fill] = alog10(x_linear)
-        ;; include redshift errors
-        re = execute('e_linear = x_linear * sqrt((ERR'+xfield[f]+'[idet_fill]/FLX'+xfield[f]+'[idet_fill])^2. + (red_sigm[1,idet_fill]/red_sigm[0,idet_fill])^2.)')
-        e_lx[idet_fill] = e_linear/(alog(10.)*x_linear)
+        re = execute('lx[idet_fill] = lx'+xfield[f]+'[idet_fill]')
+        re = execute('e_lx[idet_fill] = lx[idet_fill] * sqrt((red_sigm[1,idet_fill]/red_sigm[0,idet_fill])^2. + (ERR'+xfield[f]+'[idet_fill]/FLX'+xfield[f]+'[idet_fill])^2.)')
+        loglx[idet_fill] = alog10(lx[idet_fill])
+        e_loglx[idet_fill] = e_lx[idet_fill]/(alog(10.)*lx[idet_fill])
     endif
 endfor
-
 
 sav_vars = ['LX','E_LX','LOGLX','E_LOGLX']
 sav_inds = []
@@ -59,16 +57,19 @@ for f = 0,nfield-1 do begin
     ;; detections
     re = execute('idet_fill = where(IIAGN_DET'+xfield[f]+',detct)')
     if (detct gt 0.) then begin
-        re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = LX'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]-lxir[where(IIAGN_DET'+xfield[f]+')]')
-        re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = sqrt((ERR'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(alog(10.)*FLX'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]))^2. + (e_fir[where(IIAGN_DET'+xfield[f]+')])^2.)')
+        re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = lx'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/lxir[where(IIAGN_DET'+xfield[f]+')]')
+        re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = '+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] * sqrt((ERR'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(FLX'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]))^2. + (flx_sigm[1,where(IIAGN_DET'+xfield[f]+')]/flx_sigm[0,where(IIAGN_DET'+xfield[f]+')])^2.)')
+        re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] /= (alog(10.)*'+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
+        re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = alog10('+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
     endif
     ;; non-detections
     re = execute('inon_fill = where(IIAGN_NON'+xfield[f]+',nonct)')
-    if (nonct gt 0.) then begin
-        re = execute(llnon[f]+'[where(IIAGN_NON'+xfield[f]+')] = LXLIM'+xfield[f]+'[where(IIAGN_NON'+xfield[f]+')]-lxir[where(IIAGN_NON'+xfield[f]+')]')
-        re = execute(e_llnon[f]+'[where(IIAGN_NON'+xfield[f]+')] = sqrt((median(CAT_ERR'+xfield[f]+'/(alog(10.)*CAT_FLX'+xfield[f]+')))^2. + (e_fir[where(IIAGN_NON'+xfield[f]+')])^2.)')
-    endif
+    if (nonct gt 0.) then re = execute(llnon[f]+'[where(IIAGN_NON'+xfield[f]+')] = LOGLXLIM'+xfield[f]+'[where(IIAGN_NON'+xfield[f]+')]-loglxir[where(IIAGN_NON'+xfield[f]+')]')
 endfor
+
+sav_vars = [sav_vars,lldet,llnon,e_lldet,e_llnon]
+sav_inds = [sav_inds]
+
 
 ;; combined all detections to single sample vector 
 llxdet = dblarr(nsrc)-9999.
@@ -87,22 +88,19 @@ for f = 0,nfield-1 do begin
     endif
     ;; non-detections
     re = execute('inon_fill = where(llxnon eq -9999. and iiagn_non and IIAGN_NON'+xfield[f]+',nonct)')
-    if (nonct gt 0.) then begin
-        re = execute('llxnon[inon_fill] = '+llnon[f]+'[inon_fill]')
-        re = execute('e_llxnon[inon_fill] = '+e_llnon[f]+'[inon_fill]')        
-    endif
+    if (nonct gt 0.) then re = execute('llxnon[inon_fill] = '+llnon[f]+'[inon_fill]')
 endfor
 iixdet = llxdet ne -9999.
 iixnon = llxnon ne -9999.
 
-sav_vars = ['LX','E_LX',lldet,llnon,e_lldet,e_llnon, $
-            'LLXDET','LLXNON','E_LLXDET','E_LLXNON']
-sav_inds = ['IIXDET','IIXNON']
+sav_vars = [sav_vars,'LLXDET','LLXNON','E_LLXDET','E_LLXNON']
+sav_inds = [sav_inds,'IIXDET','IIXNON']
 
 
 ;; log E(B-V) for ploting
-lebv = alog10(ebv)>(-2.5)
+lebv = alog10(ebv)
 lebv = lebv + randomu(seed,nsrc)*0.05-0.05/2.
+lebv[where(~finite(lebv),/null)] = -2.5 
 
 sav_vars = [sav_vars,'LEBV']
 sav_inds = [sav_inds]

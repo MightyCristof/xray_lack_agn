@@ -2,8 +2,8 @@
 ;; CHA - https://cxc.harvard.edu/proposer/POG/html/chap4.html#tth_sEc4.2.2
 ;; XMM - https://heasarc.gsfc.nasa.gov/docs/xmm/uhb/effareaoffaxis.html
 ;; NST - https://heasarc.gsfc.nasa.gov/docs/nustar/nustar_obsguide.pdf
-PRO fit_catalog_flim, MULTI_SN = multi_sn, $
-                      PLT = plt
+PRO fit_catalog_flxlim, MULTI_SN = multi_sn, $
+                        PLT = plt
 
 
 common _inf_cha
