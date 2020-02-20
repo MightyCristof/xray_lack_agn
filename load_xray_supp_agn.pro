@@ -28,7 +28,7 @@ load_vars,'cleaned_cha.sav','_clean_cha'
 load_vars,'cleaned_xmm.sav','_clean_xmm'   
 load_vars,'cleaned_nst.sav','_clean_nst'   
 load_vars,'quality_src.sav','_quality'  
-load_vars,'lum_ratio.sav','_lum_ratio'
+load_vars,'lum_ratio.sav','_lratio'
 load_vars,'nh_dist.sav','_nhdist'   
 popd
 

@@ -37,6 +37,7 @@ sav_inds = ['IILIR']
 ;;----------------------------------------------------------------------------------------
 ;; IR 6-micron AGN luminosity calculated from SED model parameters
 lir = dblarr(nsrc)
+loglir = dblarr(nsrc)
 if keyword_set(dered) then begin
     lir[ilir] = l_agn(6.,dblarr(nagn),z[ilir],c_agn[ilir])    ;; 6-micron intrinsic
 endif else $
@@ -46,31 +47,44 @@ endif else $
 ;; luminosity corrected
 lcorr = correct_agn_lum(wave,flux,e_flux,param)
 iicorr = lcorr ne 0.
-lir += lcorr
-loglir = alog10(lir)>0.
+lir[ilir] += lcorr[ilir]
+loglir[ilir] = alog10(lir[ilir])
+
+sav_vars = [sav_vars,'LCORR','LIR','LOGLIR']
+sav_inds = [sav_inds,'IICORR']
+
 
 ;; LX(LIR) from LX-LIR relationship
+lxir = dblarr(nsrc)
+lxir_scat = dblarr(nsrc)-9999.
 loglxir = dblarr(nsrc)
-loglxir_scat = dblarr(nsrc)
+loglxir_scat = dblarr(nsrc)-9999.
 ;lxir[where(iilir)] = lxir_chen(lir[where(iilir)],/scatter)
-lxir_rel = lxir_fiore(loglir[where(iilir)],/scatter)
-loglxir[where(iilir)] = lxir_rel[0,*]
-loglxir_scat[where(iilir)] = lxir_rel[1,*]
-lxir = 10.^loglxir
-lxir[where(loglxir eq 0.,/null)] = 0.
-lxir_scat = 10.^loglxir
-lxir_scat[where(loglxir_scat eq 0.,/null)] = 0.
+lxir_rel = lxir_fiore(loglir[ilir],/scatter)
+loglxir[ilir] = lxir_rel[0,*]
+loglxir_scat[ilir] = lxir_rel[1,*]
+lxir[ilir] = 10.^loglxir[ilir]
+lxir_scat[ilir] = 10.^loglxir_scat[ilir]
+
+sav_vars = [sav_vars,'LXIR','LXIR_SCAT','LOGLXIR','LOGLXIR_SCAT']
+sav_inds = [sav_inds]
+
+
 ;; convert LX(LIR) to FX( LX(LIR) ) for flux-limit plots
 ;; erg/s to erg/s/cm^2
 ;; luminosity distance
 dl2 = dlum(z,/sq)
 fxir = dblarr(nsrc)
-fxir[ilir] = 10.^(loglxir[ilir])/(4.*!const.pi*dl2[ilir])
-logfxir = alog10(fxir)
-logfxir[where(fxir eq 0.,/null)] = 0.
+fxir_scat = dblarr(nsrc)
+logfxir = dblarr(nsrc)
+logfxir_scat = dblarr(nsrc)
+fxir[ilir] = lxir[ilir]/(4.*!const.pi*dl2[ilir])
+fxir_scat[ilir] = lxir_scat[ilir]
+logfxir[ilir] = alog10(fxir[ilir])
+logfxir_scat[ilir] = loglxir_scat[ilir]
 
-sav_vars = [sav_vars,'LCORR','LIR','LOGLIR','LXIR','LOGLXIR','LOGLXIR_SCAT','DL2','FXIR','LOGFXIR']
-sav_inds = [sav_inds,'IICORR']
+sav_vars = [sav_vars,'DL2','FXIR','FXIR_SCAT','LOGFXIR','LOGFXIR_SCAT']
+sav_inds = [sav_inds]
 
 
 

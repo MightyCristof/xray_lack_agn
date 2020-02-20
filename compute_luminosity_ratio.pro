@@ -57,7 +57,7 @@ for f = 0,nfield-1 do begin
     ;; detections
     re = execute('idet_fill = where(IIAGN_DET'+xfield[f]+',detct)')
     if (detct gt 0.) then begin
-        re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = lx'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/lxir[where(IIAGN_DET'+xfield[f]+')]')
+        re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = lx'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(lxir[where(IIAGN_DET'+xfield[f]+')]*lxir_scat[where(IIAGN_DET'+xfield[f]+')])')
         re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = '+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] * sqrt((ERR'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(FLX'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]))^2. + (flx_sigm[1,where(IIAGN_DET'+xfield[f]+')]/flx_sigm[0,where(IIAGN_DET'+xfield[f]+')])^2.)')
         re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] /= (alog(10.)*'+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
         re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = alog10('+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
