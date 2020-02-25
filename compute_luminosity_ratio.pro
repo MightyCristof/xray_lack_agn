@@ -27,17 +27,28 @@ lx = dblarr(nsrc)
 e_lx = dblarr(nsrc)
 loglx = dblarr(nsrc)
 e_loglx = dblarr(nsrc)
+lxlim = dblarr(nsrc)
+e_lxlim = dblarr(nsrc)
+loglxlim = dblarr(nsrc)
+e_loglxlim = dblarr(nsrc)
 for f = 0,nfield-1 do begin
     re = execute('idet_fill = where(lx eq 0. and IIAGN_DET'+xfield[f]+',detct)')
     if (detct gt 0.) then begin
         re = execute('lx[idet_fill] = lx'+xfield[f]+'[idet_fill]')
-        re = execute('e_lx[idet_fill] = lx[idet_fill] * sqrt((red_sigm[1,idet_fill]/red_sigm[0,idet_fill])^2. + (ERR'+xfield[f]+'[idet_fill]/FLX'+xfield[f]+'[idet_fill])^2.)')
-        loglx[idet_fill] = alog10(lx[idet_fill])
-        e_loglx[idet_fill] = e_lx[idet_fill]/(alog(10.)*lx[idet_fill])
+        re = execute('e_lx[idet_fill] = e_lx'+xfield[f]+'[idet_fill]')
+        re = execute('loglx[idet_fill] = loglx'+xfield[f]+'[idet_fill]')
+        re = execute('e_loglx[idet_fill] = e_loglx'+xfield[f]+'[idet_fill]')
+    endif
+    re = execute('inon_fill = where(lxlim eq 0. and IIAGN_NON'+xfield[f]+',nonct)')
+    if (nonct gt 0.) then begin
+        re = execute('lxlim[inon_fill] = lxlim'+xfield[f]+'[inon_fill]')
+        re = execute('e_lxlim[inon_fill] = e_lxlim'+xfield[f]+'[inon_fill]')
+        re = execute('loglxlim[inon_fill] = loglxlim'+xfield[f]+'[inon_fill]')
+        re = execute('e_loglxlim[inon_fill] = e_loglxlim'+xfield[f]+'[inon_fill]')
     endif
 endfor
 
-sav_vars = ['LX','E_LX','LOGLX','E_LOGLX']
+sav_vars = ['LX','E_LX','LOGLX','E_LOGLX','LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM']
 sav_inds = []
 
 
@@ -57,8 +68,10 @@ for f = 0,nfield-1 do begin
     ;; detections
     re = execute('idet_fill = where(IIAGN_DET'+xfield[f]+',detct)')
     if (detct gt 0.) then begin
+        ;; start in linear space
         re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = lx'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(lxir[where(IIAGN_DET'+xfield[f]+')]*lxir_scat[where(IIAGN_DET'+xfield[f]+')])')
         re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = '+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] * sqrt((ERR'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(FLX'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]))^2. + (flx_sigm[1,where(IIAGN_DET'+xfield[f]+')]/flx_sigm[0,where(IIAGN_DET'+xfield[f]+')])^2.)')
+        ;; convert to log space
         re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] /= (alog(10.)*'+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
         re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = alog10('+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
     endif

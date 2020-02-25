@@ -17,6 +17,7 @@ common _comp
 
 ;; fit output 
 ebv = reform(param[0,*])
+e_ebv = reform(ebv_sigm[1,*])
 c_agn = reform(param[2,*])
 iilir = c_agn gt 0.                 ;; AGN SED contribution exists
 ilir = where(iilir,nagn,ncomplement=ngal,/null)
@@ -28,7 +29,7 @@ ilir = where(iilir,nagn,ncomplement=ngal,/null)
 agnf6 = f_agn(6.,param,model=agnm6)
 agnf15 = f_agn(15.,param,model=agnm15)
 
-sav_vars = ['EBV','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15']
+sav_vars = ['EBV','E_EBV','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15']
 sav_inds = ['IILIR']
 
 
@@ -37,7 +38,9 @@ sav_inds = ['IILIR']
 ;;----------------------------------------------------------------------------------------
 ;; IR 6-micron AGN luminosity calculated from SED model parameters
 lir = dblarr(nsrc)
+e_lir = dblarr(nsrc)
 loglir = dblarr(nsrc)
+e_loglir = dblarr(nsrc)
 if keyword_set(dered) then begin
     lir[ilir] = l_agn(6.,dblarr(nagn),z[ilir],c_agn[ilir])    ;; 6-micron intrinsic
 endif else $
@@ -48,9 +51,11 @@ endif else $
 lcorr = correct_agn_lum(wave,flux,e_flux,param)
 iicorr = lcorr ne 0.
 lir[ilir] += lcorr[ilir]
+e_lir[ilir] = reform(lir_sigm[1,ilir])
 loglir[ilir] = alog10(lir[ilir])
+e_loglir[ilir] = e_lir[ilir]/(alog(10.)*lir[ilir])
 
-sav_vars = [sav_vars,'LCORR','LIR','LOGLIR']
+sav_vars = [sav_vars,'LCORR','LIR','E_LIR','LOGLIR','E_LOGLIR']
 sav_inds = [sav_inds,'IICORR']
 
 
@@ -123,25 +128,37 @@ sav_inds = [sav_inds]
 ;;----------------------------------------------------------------------------------------
 ;; 2-10keV
 fxlim = 'FXLIM'+xfield        ;; flux limit at source
+e_fxlim = 'E_'+fxlim
 logfxlim = 'LOG'+fxlim
+e_logfxlim = 'E_'+logfxlim
 lxlim = 'LXLIM'+xfield      ;; luminosity at flux limit
+e_lxlim = 'E_'+lxlim
 loglxlim = 'LOG'+lxlim
+e_loglxlim = 'E_'+loglxlim
 fxlim_cs = 'FXLIM_CS'+xfield  ;; flux-limit function coefficients 
 degr = [6,6,1]              ;; degree of polynomial to fit flux-limit
 for i = 0,nfield-1 do begin
     re = execute(fxlim[i]+' = dblarr(nsrc)')
+    re = execute(e_fxlim[i]+' = dblarr(nsrc)')
     re = execute(logfxlim[i]+' = dblarr(nsrc)')
+    re = execute(e_logfxlim[i]+' = dblarr(nsrc)')
     re = execute(lxlim[i]+' = dblarr(nsrc)')
+    re = execute(e_lxlim[i]+' = dblarr(nsrc)')
     re = execute(loglxlim[i]+' = dblarr(nsrc)')
+    re = execute(e_loglxlim[i]+' = dblarr(nsrc)')
     re = execute(fxlim_cs[i]+' = dblarr(degr[i])')
     re = execute('isrc = where(iiinf'+xfield[i]+')')
     re = execute(fxlim[i]+'[isrc] = extrapolate_flim(CAT_LIM'+xfield[i]+',CAT_EXP'+xfield[i]+',TEXP'+xfield[i]+'[isrc],degr[i],FLIM_CS='+fxlim_cs[i]+')')
+    re = execute(e_fxlim[i]+'[isrc] = '+fxlim[i]+'[isrc] / 3d')
     re = execute(logfxlim[i]+'[isrc] = alog10('+fxlim[i]+'[isrc])')
+    re = execute(e_logfxlim[i]+'[isrc] = '+e_fxlim[i]+'[isrc]/(alog(10)*'+fxlim[i]+'[isrc])')
     re = execute(lxlim[i]+'[isrc] = 4.*!const.pi*dl2[isrc]*'+fxlim[i]+'[isrc]')
+    re = execute(e_lxlim[i]+'[isrc] = '+lxlim[i]+'[isrc] * sqrt(('+e_fxlim[i]+'[isrc]/'+fxlim[i]+'[isrc])^2. + (red_sigm[1,isrc]/red_sigm[0,isrc])^2.)')
     re = execute(loglxlim[i]+'[isrc] = alog10('+lxlim[i]+'[isrc])')
+    re = execute(e_loglxlim[i]+'[isrc] = '+e_lxlim[i]+'[isrc]/(alog(10)*'+lxlim[i]+'[isrc])')
 endfor
 
-sav_vars = [sav_vars,'DEGR',fxlim_cs,fxlim,logfxlim,lxlim,loglxlim]
+sav_vars = [sav_vars,'DEGR',fxlim_cs,fxlim,e_fxlim,logfxlim,e_logfxlim,lxlim,e_lxlim,loglxlim,e_loglxlim]
 sav_inds = [sav_inds]
 
 
