@@ -2,7 +2,7 @@ PRO load_xray_supp_agn, CURRENT = current
 
 
 if keyword_set(current) then cd, current=data_dir else $
-                             data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20200212_ebv50'
+                             data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20200225_ebv50'
 
 path = 'PATH: '+data_dir
 str = strjoin(make_array(strlen(path),value='*'))
@@ -12,7 +12,7 @@ print, str
 
 pushd,data_dir
 load_vars,'fits.sav','_fits'
-load_vars,'resamp_fits.sav','_resamp'            
+load_vars,'resamp.sav','_resamp'            
 load_vars,'infield_cha.sav','_inf_cha'   
 load_vars,'infield_xmm.sav','_inf_xmm'   
 load_vars,'infield_nst.sav','_inf_nst'   

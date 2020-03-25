@@ -27,9 +27,6 @@ iimast = 'IIMAST'+xfield
 cat_fov = 'FOV'+xfield
 ;; FOV 70% effective area
 eff_fov = 'EFF'+xfield
-eff_cha = 7.*60.
-eff_xmm = 7.*60.
-eff_nst = 5.*60.
 
 for f = 0,nfield-1 do begin
     ;; choose instrument
@@ -95,7 +92,7 @@ endfor
 cat_lim = 'CAT_LIM'+xfield
 for f = 0,nfield-1 do re = execute(cat_lim[f]+' = xray_flux_limit('+cat_exp[f]+','+cat_flx[f]+','+cat_err[f]+',6)')
 
-sav_vars = [cat_exp,cat_flx,cat_err,cat_lim,eff_fov]
+sav_vars = [cat_exp,cat_flx,cat_err,cat_lim]
 sav_inds = []
 
 if keyword_set(multi_sn) then begin
