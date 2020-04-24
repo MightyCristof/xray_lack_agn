@@ -1,5 +1,5 @@
 FUNCTION lxir_fiore, log_lir, $
-                     SCATTER = scatter
+                     SCATTER = scat
 
 
 ;; LX-LIR relationship of Fiore+09
@@ -10,14 +10,19 @@ FUNCTION lxir_fiore, log_lir, $
 nobj = n_elements(log_lir)
 sig = 0.3
 
-log_lxir = dblarr(2,nobj)
+log_lxir = dblarr(nobj)
+scat = dblarr(nobj)
 iilo = log_lir lt 43.04
 ilo = where(iilo,loct)
 ihi = where(~iilo,hict)
-if (loct gt 0.) then log_lxir[0,ilo] = log_lir[ilo] - 0.3
-if keyword_set(scatter) then log_lxir[1,ilo] = randomn(seed,loct)*sig
-if (hict gt 0.) then log_lxir[0,ihi] = 43.574 + 0.72*(log_lir[ihi] - 44.2)
-if keyword_set(scatter) then log_lxir[1,ihi] = randomn(seed,hict)*sig
+if (loct gt 0.) then begin
+    log_lxir[ilo] = log_lir[ilo] - 0.3
+    scat[ilo] = randomn(seed,loct)*sig
+endif
+if (hict gt 0.) then begin
+    log_lxir[ihi] = 43.574 + 0.72*(log_lir[ihi] - 44.2)
+    scat[ihi] = randomn(seed,hict)*sig
+endif
 
 return, log_lxir
 

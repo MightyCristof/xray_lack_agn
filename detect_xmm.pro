@@ -51,17 +51,24 @@ endfor
 sep_xmm = dblarr(nsrc)
 sep_xmm[isamp] = sepx
 
-;; boolean flag for valid detection in any band
-iidet_xmm = bytarr(nsrc)
-iidet_xmm[isamp] = 1
-idet_xmm = where(iidet_xmm)
+;; boolean flag for cross-matched with 3XMM
+iix_xmm = bytarr(nsrc)
+iix_xmm[isamp] = 1
+;; ensure valid photometry
+phot = tags[where(strmatch(xmm_vars,'PN_?_FLUX'),nphot)]
+photerr = tags[where(strmatch(xmm_vars,'PN_?_FLUX_ERR'),nphoterr)]
+re = execute('iiphot = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and finite("+photerr+") and "+photerr+" gt 0.)"," or "))
+;; ensure valid exposure time
+iitime = finite(pn_ontime) and pn_ontime gt 0.
+;; boolean flag for valid detections in 3XMM
+iidet_xmm = iiphot and iitime
 
 ;; save detection data
-xmm_str = 'XMM,SEP_XMM,IIDET_XMM,IDET_XMM,'+strjoin(xmm_vars,',')
+xmm_str = 'XMM,SEP_XMM,IIX_XMM,IIDET_XMM,'+strjoin(xmm_vars,',')
 re = execute('save,'+xmm_str+',/compress,file="detections_xmm.sav"')
 
 ;; update in-field data
-inew = where(iidet_xmm eq 1 and iiinf_xmm eq 0,ctnew)
+inew = where(iix_xmm eq 1 and iiinf_xmm eq 0,ctnew)
 if (ctnew gt 0) then begin
     iiinf_xmm[inew] = 1
     texp_xmm[inew] = -9999.

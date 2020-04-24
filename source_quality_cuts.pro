@@ -107,8 +107,9 @@ endfor
 sav_vars = [sav_vars]
 sav_inds = [sav_inds,iiagn_det,iiagn_drm,iiagn_non,iiagn_nrm]
 
-
-;; combined raw X-ray detections, sample-catalog matches
+;; combined sample-catalog matches
+re = execute('iix = '+strjoin('IIX'+xfield,' or '))
+;; combined raw X-ray detections
 re = execute('iidet = '+strjoin('IIDET'+xfield,' or '))
 ;; combined cleaned X-ray detections, sample-cleaned catalog matches
 re = execute('iiclean = '+strjoin('IICLEAN'+xfield,' or '))
@@ -123,7 +124,7 @@ re = execute('iiagn_non = ('+strjoin('IIAGN_NON'+xfield,' or ')+') and ~iidet an
 iiagn = iiagn_det or iiagn_non
 
 sav_vars = [sav_vars]
-sav_inds = [sav_inds,'IIDET','IICLEAN','IIAGN_DET','IIAGN_NON','IIAGN']
+sav_inds = [sav_inds,'IIX','IIDET','IICLEAN','IIAGN_DET','IIAGN_NON','IIAGN']
 
 
 sav_str = strjoin([sav_vars,sav_inds],',')

@@ -67,18 +67,24 @@ sep_cha[isamp] = sepx
 aper90 = tags[where(strmatch(cha_vars,'*APER90*'),naper)]
 if (naper gt 0.) then for i = 0,naper-1 do re = execute(aper90[i]+' *= 1.1')
 
-
-;; boolean flag for detection in CSC2
-iidet_cha = bytarr(nsrc)
-iidet_cha[isamp] = 1
-idet_cha = where(iidet_cha)
+;; boolean flag for cross-matched with CSC2
+iix_cha = bytarr(nsrc)
+iix_cha[isamp] = 1
+;; ensure valid photometry
+phot = tags[where(strmatch(cha_vars,'*APER90_?'),nphot)]
+photerr = tags[where(strmatch(cha_vars,'*APER90_?_ERR'),nphoterr)]
+re = execute('iiphot = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and finite("+photerr+") and "+photerr+" gt 0.)"," or "))
+;; ensure valid exposure time
+iitime = finite(acis_time) and acis_time gt 0.
+;; boolean flag for valid detection in CSC2
+iidet_cha = iiphot and iitime
 
 ;; save detection data
-cha_str = 'CHA,SEP_CHA,IIDET_CHA,IDET_CHA,'+strjoin(cha_vars,',')
+cha_str = 'CHA,SEP_CHA,IIX_CHA,IIDET_CHA,'+strjoin(cha_vars,',')
 re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
 
 ;; update in-field data
-inew = where(iidet_cha eq 1 and iiinf_cha eq 0,ctnew)
+inew = where(iix_cha eq 1 and iiinf_cha eq 0,ctnew)
 if (ctnew gt 0) then begin
     iiinf_cha[inew] = 1
     texp_cha[inew] = -9999.

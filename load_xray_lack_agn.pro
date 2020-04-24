@@ -1,4 +1,4 @@
-PRO load_xray_supp_agn, CURRENT = current
+PRO load_xray_lack_agn, CURRENT = current
 
 
 if keyword_set(current) then cd, current=data_dir else $

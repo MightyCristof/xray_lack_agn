@@ -103,11 +103,11 @@ loglx = 'LOG'+lx
 e_loglx = 'E_'+loglx
 ;; X-ray luminosity converted from flux, K-corrected to rest-frame Fkcor = Fobs*(1+z)^(Γ-2)
 ;; Chandra, XMM, NuSTAR
-cat_gamma = [2.0,1.8,1.8]
+cat_gamma = [1.8,1.8,1.8]
 for i = 0,nfield-1 do begin
     re = execute(lx[i]+' = dblarr(nsrc)')
     re = execute(e_lx[i]+' = dblarr(nsrc)')
-    re = execute(loglx[i]+' = dblarr(nsrc)')
+    re = execute(loglx[i]+' = dblarr(nsrc)-9999.')
     re = execute(e_loglx[i]+' = dblarr(nsrc)')
     re = execute('idet = where(IIDET'+xfield[i]+' and FLX'+xfield[i]+' gt 0. and ERR'+xfield[i]+' gt 0.,detct)')
     if (detct gt 0.) then begin
@@ -140,11 +140,11 @@ degr = [6,6,1]              ;; degree of polynomial to fit flux-limit
 for i = 0,nfield-1 do begin
     re = execute(fxlim[i]+' = dblarr(nsrc)')
     re = execute(e_fxlim[i]+' = dblarr(nsrc)')
-    re = execute(logfxlim[i]+' = dblarr(nsrc)')
+    re = execute(logfxlim[i]+' = dblarr(nsrc)-9999.')
     re = execute(e_logfxlim[i]+' = dblarr(nsrc)')
     re = execute(lxlim[i]+' = dblarr(nsrc)')
     re = execute(e_lxlim[i]+' = dblarr(nsrc)')
-    re = execute(loglxlim[i]+' = dblarr(nsrc)')
+    re = execute(loglxlim[i]+' = dblarr(nsrc)-9999.')
     re = execute(e_loglxlim[i]+' = dblarr(nsrc)')
     re = execute(fxlim_cs[i]+' = dblarr(degr[i])')
     re = execute('isrc = where(iiinf'+xfield[i]+')')

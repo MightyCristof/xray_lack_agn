@@ -1,12 +1,12 @@
-PRO xray_supp_agn, INFIELD = infield, $
-                   DETECT = detect, $
-                   SOFTX = softx, $
-                   FLXLIM = flxlim, $
-                   LUM = lum, $
-                   CLEAN = clean, $
-                   QUALITY = quality, $
-                   LRATIO = lratio, $
-                   NHDIST = nhdist
+PRO xray_lacking_agn, INFIELD = infield, $
+                      DETECT = detect, $
+                      SOFTX = softx, $
+                      FLXLIM = flxlim, $
+                      LUM = lum, $
+                      CLEAN = clean, $
+                      QUALITY = quality, $
+                      LRATIO = lratio, $
+                      NHDIST = nhdist
 
 
 nkeys = n_elements(infield) + $

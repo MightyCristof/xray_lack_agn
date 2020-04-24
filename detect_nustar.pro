@@ -38,17 +38,23 @@ endfor
 sep_nst = dblarr(nsrc)
 sep_nst[isamp] = sepx
 
-;; boolean flag for valid detection in any band
-iidet_nst = bytarr(nsrc)
-iidet_nst[isamp] = 1
-idet_nst = where(iidet_nst)
+;; boolean flag for cross-matched with NuSTAR combined catalog
+iix_nst = bytarr(nsrc)
+iix_nst[isamp] = 1
+;; ensure valid photometry
+phot = tags[where(strmatch(nst_vars,'?BF'),nphot)]
+photerr = tags[where(strmatch(nst_vars,'E_?BF'),nphoterr)]
+;; ensure valid exposure time
+time = tags[where(strmatch(nst_vars,'?EXP'),ntime)]
+;; boolean flag for valid detections in 3XMM
+re = execute('iidet_nst = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and finite("+photerr+") and "+photerr+" gt 0. and finite("+time+") and "+time+" gt 0.)"," or "))
 
 ;; save detection data
-nst_str = 'NST,SEP_NST,IIDET_NST,IDET_NST,'+strjoin(nst_vars,',')
+nst_str = 'NST,SEP_NST,IIX_NST,IIDET_NST,'+strjoin(nst_vars,',')
 re = execute('save,'+nst_str+',/compress,file="detections_nst.sav"')
 
 ;; update in-field data
-inew = where(iidet_nst eq 1 and iiinf_nst eq 0,ctnew)
+inew = where(iix_nst eq 1 and iiinf_nst eq 0,ctnew)
 if (ctnew gt 0) then begin
     iiinf_nst[inew] = 1
     texp_nst[inew] = -9999.
