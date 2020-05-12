@@ -57,8 +57,8 @@ re = execute('save,'+nst_str+',/compress,file="detections_nst.sav"')
 inew = where(iix_nst eq 1 and iiinf_nst eq 0,ctnew)
 if (ctnew gt 0) then begin
     iiinf_nst[inew] = 1
-    texp_nst[inew] = -9999.
-    sdst_nst[inew] = -9999.
+    texp_nst[inew] = -1.
+    sdst_nst[inew] = -1.
     inf_str = strjoin(scope_varname(common='_INF_NST'),',')
     re = execute('save,'+inf_str+',file="infield_nst.sav"')
 endif

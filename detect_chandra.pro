@@ -63,10 +63,6 @@ endfor
 sep_cha = dblarr(nsrc)
 sep_cha[isamp] = sepx
 
-;; convert 90% aperture flux to 100%
-aper90 = tags[where(strmatch(cha_vars,'*APER90*'),naper)]
-if (naper gt 0.) then for i = 0,naper-1 do re = execute(aper90[i]+' *= 1.1')
-
 ;; boolean flag for cross-matched with CSC2
 iix_cha = bytarr(nsrc)
 iix_cha[isamp] = 1
@@ -87,8 +83,8 @@ re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
 inew = where(iix_cha eq 1 and iiinf_cha eq 0,ctnew)
 if (ctnew gt 0) then begin
     iiinf_cha[inew] = 1
-    texp_cha[inew] = -9999.
-    sdst_cha[inew] = -9999.
+    texp_cha[inew] = -1.
+    sdst_cha[inew] = -1.
     inf_str = strjoin(scope_varname(common='_INF_CHA'),',')
     re = execute('save,'+inf_str+',file="infield_cha.sav"')
 endif

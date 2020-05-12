@@ -10,7 +10,7 @@ common _det_cha
 common _det_xmm     
 common _det_nst     
 common _det_wac     
-common _softx       
+common _xconv      
 common _fxlim     
 common _comp        
 common _agnlum     
@@ -41,90 +41,79 @@ iiirw = lir gt 0. and lir lt 42.
 ;; AGN fraction minimum of 70%
 iifagn = agnf15.obs ge 0.7
 
-;; passes all quality cuts: chi-square, IR bright, and AGN fraction
+;; passes all SED quality cuts: chi-square, IR bright, and AGN fraction
 iiqual = iichi and iiirb and iifagn
 
 sav_vars = ['CHI','DOF','RCHI']
-sav_inds = ['IICHI','IIIRB','IIIRW','IIFAGN','IIQUAL'];'IIIRC','IIEBV','IIQUAL','IIFAGN']
+sav_inds = ['IICHI','IIIRB','IIIRW','IIFAGN','IIQUAL']
+
 
 ;;----------------------------------------------------------------------------------------
 ;; X-ray Catalog Quality Control
 ;;----------------------------------------------------------------------------------------
-;; shorthand DET and CLEAN
-iidet = 'IIDET'+xfield
-iiclean = 'IICLEAN'+xfield
-
 sn = 'SN'+xfield
 iisn = 'IISN'+xfield
 ;; S/N cut on X-ray fluxes
-for f = 0,nfield-1 do begin
-    re = execute(sn[f]+' = FLX'+xfield[f]+'/ERR'+xfield[f])
-    re = execute(iisn[f]+' = SN'+xfield[f]+' ge 3.')
+for i = 0,nfield-1 do begin
+    re = execute(sn[i]+' = FLX'+xfield[i]+'/ERR'+xfield[i])
+    re = execute(iisn[i]+' = SN'+xfield[i]+' ge 3.')
 endfor
 
-sav_vars = [sav_vars,sn]
-sav_inds = [sav_inds,iisn]
-
+;; sources within 1/2 FOV
+;; requires a separate fail flag to account for INF (iioffa =/= ~iicntr)
+;; FOV_EFF where effective area ³ 70%
+;; NOTE: NO DISTINCTION BETWEEN DETECTION AND NON-DETECTION
+iicntr = 'IICNTR'+xfield
+iioffa = 'IIOFFA'+xfield
+for i = 0,nfield-1 do begin 
+    re = execute(iicntr[i]+' = IIINF'+xfield[i]+' and SDST'+xfield[i]+' gt 0. and SDST'+xfield[i]+' le FOV_EFF'+xfield[i])
+    re = execute(iioffa[i]+' = IIINF'+xfield[i]+' and SDST'+xfield[i]+' gt FOV_EFF'+xfield[i])
+endfor
 
 ;; sources above the flux limit
 ;; requires a separate fail flag to account for FLIM exists (iifail =/= ~iipass)
 iifxlim_pass = 'IIFXLIM_PASS'+xfield
 iifxlim_fail = 'IIFXLIM_FAIL'+xfield
-for f = 0,nfield-1 do begin
-    re = execute(iifxlim_pass[f]+' = iilir and FXLIM'+xfield[f]+' gt 0. and fxir ge FXLIM'+xfield[f])
-    re = execute(iifxlim_fail[f]+' = iilir and FXLIM'+xfield[f]+' gt 0. and fxir lt FXLIM'+xfield[f])
+for i = 0,nfield-1 do begin
+    re = execute(iifxlim_pass[i]+' = iilir and FXLIM'+xfield[i]+' gt 0. and fxir ge FXLIM'+xfield[i])
+    re = execute(iifxlim_fail[i]+' = iilir and FXLIM'+xfield[i]+' gt 0. and fxir lt FXLIM'+xfield[i])
 endfor
 
-;; sources within 1/2 FOV
-;; requires a separate fail flag to account for INF (iioffa =/= ~iicntr)
-;; FOV 70% effective area
-iicntr = 'IICNTR'+xfield
-iioffa = 'IIOFFA'+xfield
-for f = 0,nfield-1 do begin 
-    re = execute(iicntr[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' le EFF'+xfield[f])
-    re = execute(iioffa[f]+' = IIINF'+xfield[f]+' and SDST'+xfield[f]+' gt EFF'+xfield[f])
-endfor
 
-sav_vars = [sav_vars]
-sav_inds = [sav_inds,iifxlim_pass,iifxlim_fail,iicntr,iioffa]
+sav_vars = [sav_vars,sn]
+sav_inds = [sav_inds,iisn,iicntr,iioffa,iifxlim_pass,iifxlim_fail]
 
 
 ;;----------------------------------------------------------------------------------------
 ;; Final output indices
 ;;----------------------------------------------------------------------------------------
 ;; AGN with X-ray detections/non-detections
-iiagn_det = 'IIAGN_DET'+xfield
-iiagn_drm = 'IIAGN_DRM'+xfield
-iiagn_non = 'IIAGN_NON'+xfield
-iiagn_nrm = 'IIAGN_NRM'+xfield
-for f = 0,nfield-1 do begin
-    re = execute(iiagn_det[f]+' = IIINF'+xfield[f]+' and IIQUAL and IIDET'+xfield[f]+' and IICLEAN'+xfield[f]+' and IISN'+xfield[f]+' and IICNTR'+xfield[f])
-    re = execute(iiagn_drm[f]+' = IIINF'+xfield[f]+' and IIQUAL and IIDET'+xfield[f]+' and IICLEAN'+xfield[f]+' and (~IISN'+xfield[f]+' or IIOFFA'+xfield[f]+')')
-    re = execute(iiagn_non[f]+' = IIINF'+xfield[f]+' and IIQUAL and ~IIDET'+xfield[f]+' and IIFXLIM_PASS'+xfield[f]+' and IICNTR'+xfield[f])
-    re = execute(iiagn_nrm[f]+' = IIINF'+xfield[f]+' and IIQUAL and ~IIDET'+xfield[f]+' and (IIFXLIM_FAIL'+xfield[f]+' or IIOFFA'+xfield[f]+')')
+iifinal_det = 'IIFINAL_DET'+xfield
+iifinal_drm = 'IIFINAL_DRM'+xfield
+iifinal_non = 'IIFINAL_NON'+xfield
+iifinal_nrm = 'IIFINAL_NRM'+xfield
+for i = 0,nfield-1 do begin
+    re = execute(iifinal_det[i]+' = IIINF'+xfield[i]+' and IIDET'+xfield[i]+' and IIQUAL and IICLEAN'+xfield[i]+' and IISN'+xfield[i]+' and IICNTR'+xfield[i])
+    re = execute(iifinal_drm[i]+' = IIINF'+xfield[i]+' and IIDET'+xfield[i]+' and IIQUAL and (IIDIRTY'+xfield[i]+' or ~IISN'+xfield[i]+' or IIOFFA'+xfield[i]+')')
+    re = execute(iifinal_non[i]+' = IIINF'+xfield[i]+' and ~IIX'+xfield[i]+' and IIQUAL and IIFXLIM_PASS'+xfield[i]+' and IICNTR'+xfield[i])
+    re = execute(iifinal_nrm[i]+' = IIINF'+xfield[i]+' and ~IIX'+xfield[i]+' and IIQUAL and (IIFXLIM_FAIL'+xfield[i]+' or IIOFFA'+xfield[i]+')')
 endfor
 
 sav_vars = [sav_vars]
-sav_inds = [sav_inds,iiagn_det,iiagn_drm,iiagn_non,iiagn_nrm]
+sav_inds = [sav_inds,iifinal_det,iifinal_drm,iifinal_non,iifinal_nrm]
 
-;; combined sample-catalog matches
-re = execute('iix = '+strjoin('IIX'+xfield,' or '))
-;; combined raw X-ray detections
-re = execute('iidet = '+strjoin('IIDET'+xfield,' or '))
-;; combined cleaned X-ray detections, sample-cleaned catalog matches
-re = execute('iiclean = '+strjoin('IICLEAN'+xfield,' or '))
 ;; combined final source detections
-re = execute('iiagn_det = '+strjoin('IIAGN_DET'+xfield,' or '))
+re = execute('iifinal_det = '+strjoin('IIFINAL_DET'+xfield,' or '))
 ;; intermediate step to non-detections (MEANINGLESS AS A FULL SAMPLE COMBINED VECTOR)
-re = execute('iiagn_drm = '+strjoin('IIAGN_DRM'+xfield,' or '))
-re = execute('iiagn_nrm = '+strjoin('IIAGN_NRM'+xfield,' or '))
-;; combined final source non-detections (in AGN_NON, no detections at all, not a non-detection that was removed)
-re = execute('iiagn_non = ('+strjoin('IIAGN_NON'+xfield,' or ')+') and ~iidet and ~iiagn_nrm')
+re = execute('iifinal_drm = '+strjoin('IIFINAL_DRM'+xfield,' or '))
+re = execute('iifinal_nrm = '+strjoin('IIFINAL_NRM'+xfield,' or '))
+;; combined final source non-detections (in FIN_NON, no detections at all)
+re = execute('iifinal_non = ('+strjoin('IIFINAL_NON'+xfield,' or ')+') and ~iix')
 ;; combined all final source detections and non-detections
-iiagn = iiagn_det or iiagn_non
+iifinal = iifinal_det or iifinal_non
 
 sav_vars = [sav_vars]
-sav_inds = [sav_inds,'IIX','IIDET','IICLEAN','IIAGN_DET','IIAGN_NON','IIAGN']
+sav_inds = [sav_inds,'IIFINAL_DET','IIFINAL_NON','IIFINAL']
 
 
 sav_str = strjoin([sav_vars,sav_inds],',')

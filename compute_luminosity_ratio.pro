@@ -10,7 +10,7 @@ common _det_cha
 common _det_xmm    
 common _det_nst 
 common _det_wac    
-common _softx      
+common _xconv      
 common _fxlim    
 common _comp       
 common _agnlum    
@@ -21,38 +21,6 @@ common _quality
 
 
 ;;----------------------------------------------------------------------------------------
-;; COMBINE X-RAY LUMINOSITIES
-;;----------------------------------------------------------------------------------------
-lx = dblarr(nsrc)
-e_lx = dblarr(nsrc)
-loglx = dblarr(nsrc)
-e_loglx = dblarr(nsrc)
-lxlim = dblarr(nsrc)
-e_lxlim = dblarr(nsrc)
-loglxlim = dblarr(nsrc)
-e_loglxlim = dblarr(nsrc)
-for f = 0,nfield-1 do begin
-    re = execute('idet_fill = where(lx eq 0. and IIAGN_DET'+xfield[f]+',detct)')
-    if (detct gt 0.) then begin
-        re = execute('lx[idet_fill] = lx'+xfield[f]+'[idet_fill]')
-        re = execute('e_lx[idet_fill] = e_lx'+xfield[f]+'[idet_fill]')
-        re = execute('loglx[idet_fill] = loglx'+xfield[f]+'[idet_fill]')
-        re = execute('e_loglx[idet_fill] = e_loglx'+xfield[f]+'[idet_fill]')
-    endif
-    re = execute('inon_fill = where(lxlim eq 0. and IIAGN_NON'+xfield[f]+',nonct)')
-    if (nonct gt 0.) then begin
-        re = execute('lxlim[inon_fill] = lxlim'+xfield[f]+'[inon_fill]')
-        re = execute('e_lxlim[inon_fill] = e_lxlim'+xfield[f]+'[inon_fill]')
-        re = execute('loglxlim[inon_fill] = loglxlim'+xfield[f]+'[inon_fill]')
-        re = execute('e_loglxlim[inon_fill] = e_loglxlim'+xfield[f]+'[inon_fill]')
-    endif
-endfor
-
-sav_vars = ['LX','E_LX','LOGLX','E_LOGLX','LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM']
-sav_inds = []
-
-
-;;----------------------------------------------------------------------------------------
 ;; LUMINOSITY RATIOS -- PROXY FOR OBSCURATION
 ;;----------------------------------------------------------------------------------------
 ;; detections/non-detections luminosity ratios
@@ -60,57 +28,84 @@ lldet = 'LLDET'+xfield
 llnon = 'LLNON'+xfield
 e_lldet = 'E_'+lldet
 e_llnon = 'E_'+llnon
-for f = 0,nfield-1 do begin
-    re = execute(lldet[f]+' = dblarr(nsrc)-9999.')
-    re = execute(llnon[f]+' = dblarr(nsrc)-9999.')
-    re = execute(e_lldet[f]+' = dblarr(nsrc)-9999.')
-    re = execute(e_llnon[f]+' = dblarr(nsrc)-9999.')
+for i = 0,nfield-1 do begin
+    re = execute(lldet[i]+' = dblarr(nsrc)-9999.')
+    re = execute(llnon[i]+' = dblarr(nsrc)-9999.')
+    re = execute(e_lldet[i]+' = dblarr(nsrc)-9999.')
+    re = execute(e_llnon[i]+' = dblarr(nsrc)-9999.')
     ;; detections
-    re = execute('idet_fill = where(IIAGN_DET'+xfield[f]+',detct)')
+    re = execute('iivalid = IIFINAL_DET'+xfield[i])
+    ivalid = where(iivalid,detct)
     if (detct gt 0.) then begin
         ;; start in linear space
-        re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = lx'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(lxir[where(IIAGN_DET'+xfield[f]+')]*lxir_scat[where(IIAGN_DET'+xfield[f]+')])')
-        re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = '+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] * sqrt((ERR'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]/(FLX'+xfield[f]+'[where(IIAGN_DET'+xfield[f]+')]))^2. + (flx_sigm[1,where(IIAGN_DET'+xfield[f]+')]/flx_sigm[0,where(IIAGN_DET'+xfield[f]+')])^2.)')
+        re = execute(lldet[i]+'[ivalid] = lx'+xfield[i]+'[ivalid]/(lxir[ivalid]*lxir_scat[ivalid])')
+        ;; errors attributed to X-ray flux and IR flux
+        re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((ERR'+xfield[i]+'[ivalid]/FLX'+xfield[i]+'[ivalid])^2. + (flx_sigm[1,ivalid]/flx_sigm[0,ivalid])^2.)')
+        ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case where AGN component; sanity check)
+        iest = where(iivalid and flx_sigm[1,*] le 0.,estct)
+        if (estct gt 0) then stop
         ;; convert to log space
-        re = execute(e_lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] /= (alog(10.)*'+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
-        re = execute(lldet[f]+'[where(IIAGN_DET'+xfield[f]+')] = alog10('+lldet[f]+'[where(IIAGN_DET'+xfield[f]+')])')
+        re = execute(e_lldet[i]+'[ivalid] /= (alog(10.)*'+lldet[i]+'[ivalid])>(-9999.)')
+        re = execute(lldet[i]+'[ivalid] = alog10('+lldet[i]+'[ivalid])>(-9999.)')
     endif
     ;; non-detections
-    re = execute('inon_fill = where(IIAGN_NON'+xfield[f]+',nonct)')
-    if (nonct gt 0.) then re = execute(llnon[f]+'[where(IIAGN_NON'+xfield[f]+')] = LOGLXLIM'+xfield[f]+'[where(IIAGN_NON'+xfield[f]+')]-loglxir[where(IIAGN_NON'+xfield[f]+')]')
+    re = execute('iivalid = IIFINAL_NON'+xfield[i])
+    ivalid = where(iivalid,nonct)
+    if (nonct gt 0.) then re = execute(llnon[i]+'[ivalid] = LOGLXLIM'+xfield[i]+'[ivalid]-loglxir[ivalid]')
 endfor
 
-sav_vars = [sav_vars,lldet,llnon,e_lldet,e_llnon]
+sav_vars = [lldet,e_lldet,llnon,e_llnon]
+sav_inds = []
+
+
+;;----------------------------------------------------------------------------------------
+;; COMBINE X-RAY LUMINOSITIES AND RATIOS
+;;----------------------------------------------------------------------------------------
+;; luminosities
+lx = dblarr(nsrc)
+e_lx = dblarr(nsrc)
+loglx = dblarr(nsrc)-9999.
+e_loglx = dblarr(nsrc)-9999.
+;; non-detections limits
+lxlim = dblarr(nsrc)
+e_lxlim = dblarr(nsrc)
+loglxlim = dblarr(nsrc)-9999.
+e_loglxlim = dblarr(nsrc)-9999.
+;; ratios
+lldet = dblarr(nsrc)-9999.
+e_lldet = dblarr(nsrc)-9999.
+llnon = dblarr(nsrc)-9999.
+e_llnon = dblarr(nsrc)-9999.
+for i = 0,nfield-1 do begin
+    re = execute('idet_fill = where(lx eq 0. and IIFINAL_DET'+xfield[i]+',detct)')
+    if (detct gt 0.) then begin
+        re = execute('lx[idet_fill] = lx'+xfield[i]+'[idet_fill]')
+        re = execute('e_lx[idet_fill] = e_lx'+xfield[i]+'[idet_fill]')
+        re = execute('loglx[idet_fill] = loglx'+xfield[i]+'[idet_fill]')
+        re = execute('e_loglx[idet_fill] = e_loglx'+xfield[i]+'[idet_fill]')
+        re = execute('lldet[idet_fill] = LLDET'+xfield[i]+'[idet_fill]')
+        re = execute('e_lldet[idet_fill] = E_LLDET'+xfield[i]+'[idet_fill]')
+    endif
+    re = execute('inon_fill = where(lxlim eq 0. and iifinal_non and IIFINAL_NON'+xfield[i]+',nonct)')
+    if (nonct gt 0.) then begin
+        re = execute('lxlim[inon_fill] = lxlim'+xfield[i]+'[inon_fill]')
+        re = execute('e_lxlim[inon_fill] = e_lxlim'+xfield[i]+'[inon_fill]')
+        re = execute('loglxlim[inon_fill] = loglxlim'+xfield[i]+'[inon_fill]')
+        re = execute('e_loglxlim[inon_fill] = e_loglxlim'+xfield[i]+'[inon_fill]')
+        re = execute('llnon[inon_fill] = LLNON'+xfield[i]+'[inon_fill]')
+        re = execute('e_llnon[inon_fill] = E_LLNON'+xfield[i]+'[inon_fill]')
+    endif
+endfor
+
+sav_vars = [sav_vars,'LX','E_LX','LOGLX','E_LOGLX', $
+                     'LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM', $
+                     'LLDET','E_LLDET','LLNON','E_LLNON']
 sav_inds = [sav_inds]
 
 
-;; combined all detections to single sample vector 
-llxdet = dblarr(nsrc)-9999.
-llxnon = dblarr(nsrc)-9999.
-e_llxdet = dblarr(nsrc)-9999.
-e_llxnon = dblarr(nsrc)-9999.
-;; valid detections/non-detections (supplement with removed detections)
-;; non-detections must use combined IIAGN_NON to account for valid non-detections,
-;; which have been removed from other instruments
-for f = 0,nfield-1 do begin
-    ;; detections
-    re = execute('idet_fill = where(llxdet eq -9999. and iiagn_det and IIAGN_DET'+xfield[f]+',detct)')
-    if (detct gt 0.) then begin
-        re = execute('llxdet[idet_fill] = '+lldet[f]+'[idet_fill]')
-        re = execute('e_llxdet[idet_fill] = '+e_lldet[f]+'[idet_fill]')
-    endif
-    ;; non-detections
-    re = execute('inon_fill = where(llxnon eq -9999. and iiagn_non and IIAGN_NON'+xfield[f]+',nonct)')
-    if (nonct gt 0.) then re = execute('llxnon[inon_fill] = '+llnon[f]+'[inon_fill]')
-endfor
-iixdet = llxdet ne -9999.
-iixnon = llxnon ne -9999.
-
-sav_vars = [sav_vars,'LLXDET','LLXNON','E_LLXDET','E_LLXNON']
-sav_inds = [sav_inds,'IIXDET','IIXNON']
-
-
-;; log E(B-V) for ploting
+;;----------------------------------------------------------------------------------------
+;; LOG E(B-V)
+;;----------------------------------------------------------------------------------------
 lebv = alog10(ebv)
 lebv = lebv + randomu(seed,nsrc)*0.05-0.05/2.
 lebv[where(~finite(lebv),/null)] = -2.5 

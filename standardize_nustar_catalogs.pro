@@ -63,7 +63,7 @@ case field of
     end
     'UDS': begin
         rr = in_rr
-        ;;
+        ;; counterpart RA/Dec
         irr = where(rr.xmmra eq -99.)
         rr[irr].xmmra = rr[irr].radeg
         rr[irr].xmmde = rr[irr].dedeg

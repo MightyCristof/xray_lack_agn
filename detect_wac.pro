@@ -20,7 +20,7 @@ sdst_wac = dblarr(nsrc)
 sdst_wac[isamp] = sep_wac
 
 ;; save data
-save,iidet_wac,sdst_wac,wac,/compress,file='detections_wac.sav'
+save,wac,iidet_wac,sdst_wac,/compress,file='detections_wac.sav'
 
 
 END

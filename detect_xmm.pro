@@ -71,8 +71,8 @@ re = execute('save,'+xmm_str+',/compress,file="detections_xmm.sav"')
 inew = where(iix_xmm eq 1 and iiinf_xmm eq 0,ctnew)
 if (ctnew gt 0) then begin
     iiinf_xmm[inew] = 1
-    texp_xmm[inew] = -9999.
-    sdst_xmm[inew] = -9999.
+    texp_xmm[inew] = -1.
+    sdst_xmm[inew] = -1.
     inf_str = strjoin(scope_varname(common='_INF_XMM'),',')
     re = execute('save,'+inf_str+',file="infield_xmm.sav"')
 endif

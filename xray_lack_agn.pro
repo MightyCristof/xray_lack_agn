@@ -1,19 +1,19 @@
-PRO xray_lacking_agn, INFIELD = infield, $
-                      DETECT = detect, $
-                      SOFTX = softx, $
-                      FLXLIM = flxlim, $
-                      LUM = lum, $
-                      CLEAN = clean, $
-                      QUALITY = quality, $
-                      LRATIO = lratio, $
-                      NHDIST = nhdist
+PRO xray_lack_agn, INFIELD = infield, $
+                   DETECT = detect, $
+                   CONVERT = convert, $
+                   FXLIM = fxlim, $
+                   AGNLUM = agnlum, $
+                   CLEAN = clean, $
+                   QUALITY = quality, $
+                   LRATIO = lratio, $
+                   NHDIST = nhdist
 
 
 nkeys = n_elements(infield) + $
         n_elements(detect) + $
-        n_elements(softx) + $
-        n_elements(flxlim) + $
-        n_elements(lum) + $
+        n_elements(convert) + $
+        n_elements(fxlim) + $
+        n_elements(agnlum) + $
         n_elements(clean) + $
         n_elements(quality) + $
         n_elements(lratio) + $
@@ -51,17 +51,17 @@ load_vars,'detections_wac.sav','_det_wac'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; X-ray conversion to 2-10keV
-if keyword_set(softx) then begin
+if keyword_set(convert) then begin
     gmma = 1.8
-    convert_softx,gmma;,/plt
+    convert_xband,gmma
     nkeys--
 endif
-load_vars,'softx_conversions.sav','_softx'
+load_vars,'xband_conversions.sav','_xconv'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; estimate X-ray flux limits from catalogs
-if keyword_set(flxlim) then begin
-    fit_catalog_flxlim,/multi_sn;,/plt
+if keyword_set(fxlim) then begin
+    catalog_fxlim,/multi_sn
     nkeys--
 endif
 load_vars,'catalog_flux_limits.sav','_fxlim'
@@ -70,8 +70,8 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 ;; calculate IR luminosities and X-ray conversions
 ;; load SED template components
 load_comp,'../comp_*.sav'
-if keyword_set(lum) then begin
-    agn_xray_luminosity,/dered
+if keyword_set(agnlum) then begin
+    agn_luminosity,/dered
     nkeys--
 endif
 load_vars,'src_luminosity.sav','_agnlum'

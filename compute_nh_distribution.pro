@@ -12,33 +12,33 @@ binsz = 0.2
 
 ;; POWER-LAW MODEL
 ;; NH distribution from all det_powerections/non_power-det_powerections
-nhxdet_power = ll2nh(llxdet,model='power')
-nhxnon_power = ll2nh(llxnon,model='power')
+nhdet_power = ll2nh(lldet,model='power')
+nhnon_power = ll2nh(llnon,model='power')
 
-yhist_det_power = histogram(nhxdet_power[where(iiagn_det)],locations=xhist_det_power,bin=binsz)
-yhist_non_power = histogram(nhxnon_power[where(iiagn_non)],locations=xhist_non_power,bin=binsz)
+yhist_det_power = histogram(nhdet_power[where(iifinal_det)],locations=xhist_det_power,bin=binsz)
+yhist_non_power = histogram(nhnon_power[where(iifinal_non)],locations=xhist_non_power,bin=binsz)
 
 xhist_det_power = [xhist_det_power[0]-binsz,xhist_det_power,xhist_det_power[-1]+binsz]
 xhist_non_power = [xhist_non_power[0]-binsz,xhist_non_power,xhist_non_power[-1]+binsz]
 yhist_det_power = [0.,yhist_det_power,0.]
 yhist_non_power = [0.,yhist_non_power,0.]
 
-sav_vars = ['BINSZ','NHXDET_POWER','NHXNON_POWER', $
+sav_vars = ['BINSZ','NHDET_POWER','NHNON_POWER', $
                     'YHIST_DET_POWER','XHIST_DET_POWER','YHIST_NON_POWER','XHIST_NON_POWER']
 sav_inds = []
 
 ;; construct distributions by type WAC/Remaining
 ;; indices of WISE AGN det_powerections/non_power-det_powerections
-iiwdet_power = iiagn_det and iidet_wac
-iiwnon_power = iiagn_non and iidet_wac
+iiwdet_power = iifinal_det and iidet_wac
+iiwnon_power = iifinal_non and iidet_wac
 ;; indices of remaining det_powerections/non_power-det_powerections
-iirdet_power = iiagn_det and ~iidet_wac
-iirnon_power = iiagn_non and ~iidet_wac
+iirdet_power = iifinal_det and ~iidet_wac
+iirnon_power = iifinal_non and ~iidet_wac
 
-yhist_wdet_power = histogram(nhxdet_power[where(iiwdet_power)],locations=xhist_wdet_power,bin=binsz)
-yhist_wnon_power = histogram(nhxnon_power[where(iiwnon_power)],locations=xhist_wnon_power,bin=binsz)
-yhist_rdet_power = histogram(nhxdet_power[where(iirdet_power)],locations=xhist_rdet_power,bin=binsz)
-yhist_rnon_power = histogram(nhxnon_power[where(iirnon_power)],locations=xhist_rnon_power,bin=binsz)
+yhist_wdet_power = histogram(nhdet_power[where(iiwdet_power)],locations=xhist_wdet_power,bin=binsz)
+yhist_wnon_power = histogram(nhnon_power[where(iiwnon_power)],locations=xhist_wnon_power,bin=binsz)
+yhist_rdet_power = histogram(nhdet_power[where(iirdet_power)],locations=xhist_rdet_power,bin=binsz)
+yhist_rnon_power = histogram(nhnon_power[where(iirnon_power)],locations=xhist_rnon_power,bin=binsz)
 
 xhist_wdet_power = [xhist_wdet_power[0]-binsz,xhist_wdet_power,xhist_wdet_power[-1]+binsz]
 xhist_wnon_power = [xhist_wnon_power[0]-binsz,xhist_wnon_power,xhist_wnon_power[-1]+binsz]
@@ -56,33 +56,33 @@ sav_inds = [sav_inds,'IIWDET_POWER','IIWNON_POWER','IIRDET_POWER','IIRNON_POWER'
 
 ;; BORUS MODEL
 ;; NH distribution from all det_powerections/non_power-det_powerections
-nhxdet_borus = ll2nh(llxdet,model='BORUS')
-nhxnon_borus = ll2nh(llxnon,model='BORUS')
+nhdet_borus = ll2nh(lldet,model='BORUS')
+nhnon_borus = ll2nh(llnon,model='BORUS')
 
-yhist_det_borus = histogram(nhxdet_borus[where(iiagn_det)],locations=xhist_det_borus,bin=binsz)
-yhist_non_borus = histogram(nhxnon_borus[where(iiagn_non)],locations=xhist_non_borus,bin=binsz)
+yhist_det_borus = histogram(nhdet_borus[where(iifinal_det)],locations=xhist_det_borus,bin=binsz)
+yhist_non_borus = histogram(nhnon_borus[where(iifinal_non)],locations=xhist_non_borus,bin=binsz)
 
 xhist_det_borus = [xhist_det_borus[0]-binsz,xhist_det_borus,xhist_det_borus[-1]+binsz]
 xhist_non_borus = [xhist_non_borus[0]-binsz,xhist_non_borus,xhist_non_borus[-1]+binsz]
 yhist_det_borus = [0.,yhist_det_borus,0.]
 yhist_non_borus = [0.,yhist_non_borus,0.]
 
-sav_vars = [sav_vars,'NHXDET_BORUS','NHXNON_BORUS', $
+sav_vars = [sav_vars,'NHDET_BORUS','NHNON_BORUS', $
                      'YHIST_DET_BORUS','XHIST_DET_BORUS','YHIST_NON_BORUS','XHIST_NON_BORUS']
 sav_inds = [sav_inds]
 
 ;; construct distributions by type WAC/Remaining
 ;; indices of WISE AGN det_borusections/non_borus-det_borusections
-iiwdet_borus = iiagn_det and iidet_wac
-iiwnon_borus = iiagn_non and iidet_wac
+iiwdet_borus = iifinal_det and iidet_wac
+iiwnon_borus = iifinal_non and iidet_wac
 ;; indices of remaining det_borusections/non_borus-det_borusections
-iirdet_borus = iiagn_det and ~iidet_wac
-iirnon_borus = iiagn_non and ~iidet_wac
+iirdet_borus = iifinal_det and ~iidet_wac
+iirnon_borus = iifinal_non and ~iidet_wac
 
-yhist_wdet_borus = histogram(nhxdet_borus[where(iiwdet_borus)],locations=xhist_wdet_borus,bin=binsz)
-yhist_wnon_borus = histogram(nhxnon_borus[where(iiwnon_borus)],locations=xhist_wnon_borus,bin=binsz)
-yhist_rdet_borus = histogram(nhxdet_borus[where(iirdet_borus)],locations=xhist_rdet_borus,bin=binsz)
-yhist_rnon_borus = histogram(nhxnon_borus[where(iirnon_borus)],locations=xhist_rnon_borus,bin=binsz)
+yhist_wdet_borus = histogram(nhdet_borus[where(iiwdet_borus)],locations=xhist_wdet_borus,bin=binsz)
+yhist_wnon_borus = histogram(nhnon_borus[where(iiwnon_borus)],locations=xhist_wnon_borus,bin=binsz)
+yhist_rdet_borus = histogram(nhdet_borus[where(iirdet_borus)],locations=xhist_rdet_borus,bin=binsz)
+yhist_rnon_borus = histogram(nhnon_borus[where(iirnon_borus)],locations=xhist_rnon_borus,bin=binsz)
 
 xhist_wdet_borus = [xhist_wdet_borus[0]-binsz,xhist_wdet_borus,xhist_wdet_borus[-1]+binsz]
 xhist_wnon_borus = [xhist_wnon_borus[0]-binsz,xhist_wnon_borus,xhist_wnon_borus[-1]+binsz]
