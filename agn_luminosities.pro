@@ -1,4 +1,4 @@
-PRO agn_luminosity, DERED = dered
+PRO agn_luminosities, DERED = dered
 
 
 common _fits
@@ -39,7 +39,7 @@ sav_inds = ['IILIR']
 
 
 ;;----------------------------------------------------------------------------------------
-;; LUMINOSITIES -- L(IR) AND LX(LIR)
+;; L(IR) AND LX(LIR)
 ;;----------------------------------------------------------------------------------------
 ;; IR 6-micron AGN luminosity calculated from SED model parameters
 lir = dblarr(nsrc)
@@ -103,7 +103,7 @@ sav_inds = [sav_inds]
 
 
 ;;----------------------------------------------------------------------------------------
-;; LUMINOSITIES -- LX
+;; LUMINOSITIES
 ;;----------------------------------------------------------------------------------------
 ;; 2-10keV luminosity arrays
 lx = 'LX'+xfield
@@ -138,7 +138,7 @@ sav_inds = [sav_inds]
 
 
 ;;----------------------------------------------------------------------------------------
-;; INTERPOLATE 2-10keV FLUX LIMIT FLUX & LUMINOSITY
+;; LIMITS
 ;;----------------------------------------------------------------------------------------
 ;; flux limit at source
 fxlim = 'FXLIM'+xfield
@@ -182,8 +182,46 @@ endfor
 sav_vars = [sav_vars,'DEGR',fxlim_cs,fxlim,e_fxlim,logfxlim,e_logfxlim,lxlim,e_lxlim,loglxlim,e_loglxlim]
 sav_inds = [sav_inds]
 
+
+;;----------------------------------------------------------------------------------------
+;; RATIOS
+;;----------------------------------------------------------------------------------------
+lldet = 'LLDET'+xfield
+llnon = 'LLNON'+xfield
+e_lldet = 'E_'+lldet
+e_llnon = 'E_'+llnon
+for i = 0,nfield-1 do begin
+    re = execute(lldet[i]+' = dblarr(nsrc)-9999.')
+    re = execute(llnon[i]+' = dblarr(nsrc)-9999.')
+    re = execute(e_lldet[i]+' = dblarr(nsrc)-9999.')
+    re = execute(e_llnon[i]+' = dblarr(nsrc)-9999.')
+    ;; detections
+    re = execute('iivalid = IIDET'+xfield[i]+' and lxir gt 0.')
+    ivalid = where(iivalid,detct)
+    if (detct gt 0.) then begin
+        ;; start in linear space
+        re = execute(lldet[i]+'[ivalid] = lx'+xfield[i]+'[ivalid]/(lxir[ivalid]*lxir_scat[ivalid])')
+        ;; errors attributed to X-ray flux and IR flux
+        re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((ERR'+xfield[i]+'[ivalid]/FLX'+xfield[i]+'[ivalid])^2. + (flx_sigm[1,ivalid]/flx_sigm[0,ivalid])^2.)')
+        ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case where AGN component; sanity check)
+        iest = where(iivalid and flx_sigm[1,*] le 0.,estct)
+        if (estct gt 0) then stop
+        ;; convert to log space
+        re = execute(e_lldet[i]+'[ivalid] /= (alog(10.)*'+lldet[i]+'[ivalid])>(-9999.)')
+        re = execute(lldet[i]+'[ivalid] = alog10('+lldet[i]+'[ivalid])>(-9999.)')
+    endif
+    ;; non-detections
+    re = execute('iivalid = IINON'+xfield[i]+' and lxir gt 0.')
+    ivalid = where(iivalid,nonct)
+    if (nonct gt 0.) then re = execute(llnon[i]+'[ivalid] = LOGLXLIM'+xfield[i]+'[ivalid]-loglxir[ivalid]')
+endfor
+
+sav_vars = [sav_vars,lldet,e_lldet,llnon,e_llnon]
+sav_inds = [sav_inds]
+
+
 sav_str = strjoin([sav_vars,sav_inds],',')
-re = execute('save,'+sav_str+',/compress,file="src_luminosity.sav"')
+re = execute('save,'+sav_str+',/compress,file="src_luminosities.sav"')
 
 
 END

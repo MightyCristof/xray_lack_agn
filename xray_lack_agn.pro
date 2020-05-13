@@ -5,7 +5,7 @@ PRO xray_lack_agn, INFIELD = infield, $
                    AGNLUM = agnlum, $
                    CLEAN = clean, $
                    QUALITY = quality, $
-                   LRATIO = lratio, $
+                   COMBINE = combine, $
                    NHDIST = nhdist
 
 
@@ -16,7 +16,7 @@ nkeys = n_elements(infield) + $
         n_elements(agnlum) + $
         n_elements(clean) + $
         n_elements(quality) + $
-        n_elements(lratio) + $
+        n_elements(combine) + $
         n_elements(nhdist)
 if (nkeys eq 0) then GOTO, NO_KEYS
 
@@ -71,10 +71,10 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 ;; load SED template components
 load_comp,'../comp_*.sav'
 if keyword_set(agnlum) then begin
-    agn_luminosity,/dered
+    agn_luminosities,/dered
     nkeys--
 endif
-load_vars,'src_luminosity.sav','_agnlum'
+load_vars,'src_luminosities.sav','_agnlum'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; clean X-ray sources
@@ -97,12 +97,12 @@ endif
 load_vars,'quality_src.sav','_quality'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; luminosity ratio LX/LXIR
-if keyword_set(lratio) then begin
-    compute_luminosity_ratio
+;; combine values
+if keyword_set(combine) then begin
+    combine_luminosities
     nkeys--
 endif
-load_vars,'lum_ratio.sav','_lratio'
+load_vars,'combined_lum.sav','_combined'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; raw NH distribution

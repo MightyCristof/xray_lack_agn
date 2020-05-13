@@ -2,9 +2,9 @@ PRO compute_nh_distribution
 
 
 common _det_wac
-common _agnlum
+;common _agnlum
 common _quality
-common _lratio
+common _combined
 
 
 ;; histogram bin size
@@ -12,8 +12,8 @@ binsz = 0.2
 
 ;; POWER-LAW MODEL
 ;; NH distribution from all det_powerections/non_power-det_powerections
-nhdet_power = ll2nh(lldet,model='power')
-nhnon_power = ll2nh(llnon,model='power')
+nhdet_power = rl2nh(lldet,model='power')
+nhnon_power = rl2nh(llnon,model='power')
 
 yhist_det_power = histogram(nhdet_power[where(iifinal_det)],locations=xhist_det_power,bin=binsz)
 yhist_non_power = histogram(nhnon_power[where(iifinal_non)],locations=xhist_non_power,bin=binsz)
@@ -56,8 +56,8 @@ sav_inds = [sav_inds,'IIWDET_POWER','IIWNON_POWER','IIRDET_POWER','IIRNON_POWER'
 
 ;; BORUS MODEL
 ;; NH distribution from all det_powerections/non_power-det_powerections
-nhdet_borus = ll2nh(lldet,model='BORUS')
-nhnon_borus = ll2nh(llnon,model='BORUS')
+nhdet_borus = rl2nh(lldet,model='BORUS')
+nhnon_borus = rl2nh(llnon,model='BORUS')
 
 yhist_det_borus = histogram(nhdet_borus[where(iifinal_det)],locations=xhist_det_borus,bin=binsz)
 yhist_non_borus = histogram(nhnon_borus[where(iifinal_non)],locations=xhist_non_borus,bin=binsz)

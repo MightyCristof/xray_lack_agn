@@ -28,6 +28,9 @@ re = execute('iix = '+iix)
 ;; source with valid X-ray detection
 iidet = strjoin('IIDET'+xfield,' or ')
 re = execute('iidet = '+iidet)
+;; sources with complete non-detections
+iinon = '('+strjoin('IINON'+xfield,' or ')+') and ~iix'
+re = execute('iinon = '+iinon)
 
 ;; Instrument variables: exposure time, flux, error
 tt = {CHA:strarr(6)+'ACIS_TIME', $
@@ -44,7 +47,7 @@ nxband = intarr(nfield)
 for i = 0,nfield-1 do nxband[i] = n_elements(ff.(i))
 
 sav_vars = ['XFIELD','NFIELD','PHOT_IND','NSRC','TT','FF','EE','NXBAND']
-sav_inds = ['IIINF','IIX','IIDET']
+sav_inds = ['IIINF','IIX','IIDET','IINON']
 
 
 ;; Flux conversions

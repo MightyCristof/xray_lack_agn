@@ -48,9 +48,11 @@ photerr = tags[where(strmatch(nst_vars,'E_?BF'),nphoterr)]
 time = tags[where(strmatch(nst_vars,'?EXP'),ntime)]
 ;; boolean flag for valid detections in 3XMM
 re = execute('iidet_nst = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and finite("+photerr+") and "+photerr+" gt 0. and finite("+time+") and "+time+" gt 0.)"," or "))
+;; boolean flag for infield non-detections
+iinon_nst = iiinf_nst and ~iix_nst
 
 ;; save detection data
-nst_str = 'NST,SEP_NST,IIX_NST,IIDET_NST,'+strjoin(nst_vars,',')
+nst_str = 'NST,SEP_NST,IIX_NST,IIDET_NST,IINON_NST,'+strjoin(nst_vars,',')
 re = execute('save,'+nst_str+',/compress,file="detections_nst.sav"')
 
 ;; update in-field data

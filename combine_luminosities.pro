@@ -1,4 +1,4 @@
-PRO compute_luminosity_ratio 
+PRO combine_luminosities
 
 
 common _fits  
@@ -13,60 +13,22 @@ common _det_wac
 common _xconv      
 common _fxlim    
 common _comp       
-common _agnlum    
+common _agnlum 
 common _clean_cha
 common _clean_xmm
 common _clean_nst
-common _quality
+common _quality   
 
 
 ;;----------------------------------------------------------------------------------------
-;; LUMINOSITY RATIOS -- PROXY FOR OBSCURATION
-;;----------------------------------------------------------------------------------------
-;; detections/non-detections luminosity ratios
-lldet = 'LLDET'+xfield
-llnon = 'LLNON'+xfield
-e_lldet = 'E_'+lldet
-e_llnon = 'E_'+llnon
-for i = 0,nfield-1 do begin
-    re = execute(lldet[i]+' = dblarr(nsrc)-9999.')
-    re = execute(llnon[i]+' = dblarr(nsrc)-9999.')
-    re = execute(e_lldet[i]+' = dblarr(nsrc)-9999.')
-    re = execute(e_llnon[i]+' = dblarr(nsrc)-9999.')
-    ;; detections
-    re = execute('iivalid = IIFINAL_DET'+xfield[i])
-    ivalid = where(iivalid,detct)
-    if (detct gt 0.) then begin
-        ;; start in linear space
-        re = execute(lldet[i]+'[ivalid] = lx'+xfield[i]+'[ivalid]/(lxir[ivalid]*lxir_scat[ivalid])')
-        ;; errors attributed to X-ray flux and IR flux
-        re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((ERR'+xfield[i]+'[ivalid]/FLX'+xfield[i]+'[ivalid])^2. + (flx_sigm[1,ivalid]/flx_sigm[0,ivalid])^2.)')
-        ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case where AGN component; sanity check)
-        iest = where(iivalid and flx_sigm[1,*] le 0.,estct)
-        if (estct gt 0) then stop
-        ;; convert to log space
-        re = execute(e_lldet[i]+'[ivalid] /= (alog(10.)*'+lldet[i]+'[ivalid])>(-9999.)')
-        re = execute(lldet[i]+'[ivalid] = alog10('+lldet[i]+'[ivalid])>(-9999.)')
-    endif
-    ;; non-detections
-    re = execute('iivalid = IIFINAL_NON'+xfield[i])
-    ivalid = where(iivalid,nonct)
-    if (nonct gt 0.) then re = execute(llnon[i]+'[ivalid] = LOGLXLIM'+xfield[i]+'[ivalid]-loglxir[ivalid]')
-endfor
-
-sav_vars = [lldet,e_lldet,llnon,e_llnon]
-sav_inds = []
-
-
-;;----------------------------------------------------------------------------------------
-;; COMBINE X-RAY LUMINOSITIES AND RATIOS
+;; COMBINE X-RAY LUMINOSITIES, LIMITS, AND RATIOS
 ;;----------------------------------------------------------------------------------------
 ;; luminosities
 lx = dblarr(nsrc)
 e_lx = dblarr(nsrc)
 loglx = dblarr(nsrc)-9999.
 e_loglx = dblarr(nsrc)-9999.
-;; limits
+;; non-detections limits
 lxlim = dblarr(nsrc)
 e_lxlim = dblarr(nsrc)
 loglxlim = dblarr(nsrc)-9999.
@@ -97,10 +59,10 @@ for i = 0,nfield-1 do begin
     endif
 endfor
 
-sav_vars = [sav_vars,'LX','E_LX','LOGLX','E_LOGLX', $
-                     'LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM', $
-                     'LLDET','E_LLDET','LLNON','E_LLNON']
-sav_inds = [sav_inds]
+sav_vars = ['LX','E_LX','LOGLX','E_LOGLX', $
+            'LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM', $
+            'LLDET','E_LLDET','LLNON','E_LLNON']
+sav_inds = []
 
 
 ;;----------------------------------------------------------------------------------------
@@ -115,7 +77,7 @@ sav_inds = [sav_inds]
 
 
 sav_str = strjoin([sav_vars,sav_inds],',')
-re = execute('save,'+sav_str+',/compress,file="lum_ratio.sav"')
+re = execute('save,'+sav_str+',/compress,file="combined_lum.sav"')
 
 
 END

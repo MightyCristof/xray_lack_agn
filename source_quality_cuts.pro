@@ -13,7 +13,7 @@ common _det_wac
 common _xconv      
 common _fxlim     
 common _comp        
-common _agnlum     
+common _agnlum
 common _clean_cha   
 common _clean_xmm   
 common _clean_nst   
@@ -93,10 +93,10 @@ iifinal_drm = 'IIFINAL_DRM'+xfield
 iifinal_non = 'IIFINAL_NON'+xfield
 iifinal_nrm = 'IIFINAL_NRM'+xfield
 for i = 0,nfield-1 do begin
-    re = execute(iifinal_det[i]+' = IIINF'+xfield[i]+' and IIDET'+xfield[i]+' and IIQUAL and IICLEAN'+xfield[i]+' and IISN'+xfield[i]+' and IICNTR'+xfield[i])
-    re = execute(iifinal_drm[i]+' = IIINF'+xfield[i]+' and IIDET'+xfield[i]+' and IIQUAL and (IIDIRTY'+xfield[i]+' or ~IISN'+xfield[i]+' or IIOFFA'+xfield[i]+')')
-    re = execute(iifinal_non[i]+' = IIINF'+xfield[i]+' and ~IIX'+xfield[i]+' and IIQUAL and IIFXLIM_PASS'+xfield[i]+' and IICNTR'+xfield[i])
-    re = execute(iifinal_nrm[i]+' = IIINF'+xfield[i]+' and ~IIX'+xfield[i]+' and IIQUAL and (IIFXLIM_FAIL'+xfield[i]+' or IIOFFA'+xfield[i]+')')
+    re = execute(iifinal_det[i]+' = IIDET'+xfield[i]+' and IIQUAL and IICLEAN'+xfield[i]+' and IISN'+xfield[i]+' and IICNTR'+xfield[i])
+    re = execute(iifinal_drm[i]+' = IIDET'+xfield[i]+' and IIQUAL and (IIDIRTY'+xfield[i]+' or ~IISN'+xfield[i]+' or IIOFFA'+xfield[i]+')')
+    re = execute(iifinal_non[i]+' = IINON'+xfield[i]+' and IIQUAL and IIFXLIM_PASS'+xfield[i]+' and IICNTR'+xfield[i])
+    re = execute(iifinal_nrm[i]+' = IINON'+xfield[i]+' and IIQUAL and (IIFXLIM_FAIL'+xfield[i]+' or IIOFFA'+xfield[i]+')')
 endfor
 
 sav_vars = [sav_vars]

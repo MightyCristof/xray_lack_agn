@@ -62,9 +62,11 @@ re = execute('iiphot = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and finit
 iitime = finite(pn_ontime) and pn_ontime gt 0.
 ;; boolean flag for valid detections in 3XMM
 iidet_xmm = iiphot and iitime
+;; boolean flag for infield non-detections
+iinon_xmm = iiinf_xmm and ~iix_xmm
 
 ;; save detection data
-xmm_str = 'XMM,SEP_XMM,IIX_XMM,IIDET_XMM,'+strjoin(xmm_vars,',')
+xmm_str = 'XMM,SEP_XMM,IIX_XMM,IIDET_XMM,IINON_XMM,'+strjoin(xmm_vars,',')
 re = execute('save,'+xmm_str+',/compress,file="detections_xmm.sav"')
 
 ;; update in-field data

@@ -74,9 +74,11 @@ re = execute('iiphot = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and finit
 iitime = finite(acis_time) and acis_time gt 0.
 ;; boolean flag for valid detection in CSC2
 iidet_cha = iiphot and iitime
+;; boolean flag for infield non-detections
+iinon_cha = iiinf_cha and ~iix_cha
 
 ;; save detection data
-cha_str = 'CHA,SEP_CHA,IIX_CHA,IIDET_CHA,'+strjoin(cha_vars,',')
+cha_str = 'CHA,SEP_CHA,IIX_CHA,IIDET_CHA,IINON_CHA,'+strjoin(cha_vars,',')
 re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
 
 ;; update in-field data
