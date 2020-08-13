@@ -1,5 +1,5 @@
 FUNCTION lxir_chen, log_lir, $
-                    SCATTER = scatter
+                    SCATTER = scat
 
 
 ;; LX-LIR relationship of Chen+17
@@ -11,18 +11,26 @@ nobj = n_elements(log_lir)
 sig = 0.3
 
 log_lxir = dblarr(nobj)
+scat = dblarr(nobj)
 iilo = log_lir lt 44.79
 ilo = where(iilo,loct)
 ihi = where(~iilo,hict)
-if (loct gt 0.) then log_lxir[ilo] = (0.84)*(log_lir[ilo]-45.) + (44.60)
-if keyword_set(scatter) then log_lxir[ilo] += randomn(seed,loct)*sig
-if (hict gt 0.) then log_lxir[ihi] = (0.40)*(log_lir[ihi]-45.) + (44.51)
-if keyword_set(scatter) then log_lxir[ihi] += randomn(seed,hict)*sig
+if (loct gt 0.) then begin
+    log_lxir[ilo] = (0.84)*(log_lir[ilo]-45.) + (44.60)
+    scat[ilo] = randomn(seed,loct)*sig
+endif
+if (hict gt 0.) then begin
+    log_lxir[ihi] = (0.40)*(log_lir[ihi]-45.) + (44.51)
+    scat[ihi] = randomn(seed,hict)*sig
+endif
 
 return, log_lxir
 
 
 END
+
+
+
 
 
 

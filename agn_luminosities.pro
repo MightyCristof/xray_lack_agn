@@ -1,4 +1,5 @@
-PRO agn_luminosities, DERED = dered
+PRO agn_luminosities, DERED = dered, $
+                      REL = rel           
 
 
 common _fits
@@ -14,6 +15,13 @@ common _fxlim
 common _comp
 
 
+;; check LX-LIR RELATION
+rel = strupcase(rel)
+if (total([strmatch(rel,'CHEN'),strmatch(rel,'FIORE')]) eq 0) then begin
+    print, "INVALID LX-LIR RELATION"
+    return
+endif
+
 ;; SED model output
 ;; where AGN component
 c_agn = reform(param[2,*])
@@ -25,7 +33,8 @@ e_ebv = reform(ebv_sigm[1,*])
 ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), -9999 (no AGN)
 iest = where(iilir and ebv_sigm[1,*] le 0,estct)
 if (estct gt 0.) then e_ebv[iest] = ebv[iest]*0.1
-
+;; luminosity distance
+dl2 = dlum(z,/sq)
 
 ;;----------------------------------------------------------------------------------------
 ;; AGN FRACTION -- 
@@ -34,18 +43,23 @@ if (estct gt 0.) then e_ebv[iest] = ebv[iest]*0.1
 agnf6 = f_agn(6.,param,model=agnm6)
 agnf15 = f_agn(15.,param,model=agnm15)
 
-sav_vars = ['EBV','E_EBV','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15']
+sav_vars = ['EBV','E_EBV','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15','DL2']
 sav_inds = ['IILIR']
 
 
 ;;----------------------------------------------------------------------------------------
 ;; L(IR) AND LX(LIR)
 ;;----------------------------------------------------------------------------------------
-;; IR 6-micron AGN luminosity calculated from SED model parameters
+
+;; IR 6-micron AGN luminosity and flux calculated from SED model parameters
 lir = dblarr(nsrc)
 e_lir = dblarr(nsrc)
 loglir = dblarr(nsrc)-9999.
 e_loglir = dblarr(nsrc)-9999.
+fir = dblarr(nsrc)
+e_fir = dblarr(nsrc)
+logfir = dblarr(nsrc)
+e_logfir = dblarr(nsrc)
 if keyword_set(dered) then begin
     lir[ilir] = l_agn(6.,dblarr(nagn),z[ilir],c_agn[ilir])    ;; 6-micron intrinsic
 endif else $
@@ -57,13 +71,22 @@ lcorr = correct_agn_lum(wave,flux,e_flux,param)
 iicorr = lcorr ne 0.
 lir[ilir] += lcorr[ilir]
 e_lir[ilir] = reform(lir_sigm[1,ilir])
+fir[ilir] = lir[ilir]/(4.*!const.pi*dl2[ilir])
+e_fir[ilir] = reform(fir_sigm[1,ilir])
 ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), -9999 (no AGN)
 iest = where(iilir and lir_sigm[1,*] le 0,estct)
-if (estct gt 0) then e_lir[iest] = lir[iest]*0.1
-loglir[ilir] = alog10(lir[ilir]) > (-9999.)
+if (estct gt 0) then begin 
+    e_lir[iest] = lir[iest]*0.1
+    e_fir[iest] = fir[iest]*0.1
+endif
+loglir[ilir] = alog10(lir[ilir])>(-9999.)
 e_loglir[ilir] = e_lir[ilir]/(alog(10.)*lir[ilir])>(-9999.)
+logfir[ilir] = alog10(fir[ilir])>(-9999.)
+e_logfir[ilir] = e_fir[ilir]/(alog(10.)*fir[ilir])>(-9999.)
 
-sav_vars = [sav_vars,'LCORR','LIR','E_LIR','LOGLIR','E_LOGLIR']
+
+sav_vars = [sav_vars,'LCORR','LIR','E_LIR','LOGLIR','E_LOGLIR', $
+                             'FIR','E_FIR','LOGFIR','E_LOGFIR']
 sav_inds = [sav_inds,'IICORR']
 
 
@@ -74,8 +97,11 @@ lxir = dblarr(nsrc)
 lxir_scat = dblarr(nsrc)
 loglxir = dblarr(nsrc)-9999.
 loglxir_scat = dblarr(nsrc)-9999.
-;loglxir[ilir] = lxir_chen(loglir[ilir],scatter=scat)
-loglxir[ilir] = lxir_fiore(loglir[ilir],scatter=scat)
+case rel of 
+    'FIORE': loglxir[ilir] = lxir_fiore(loglir[ilir],scatter=scat)
+    'CHEN': loglxir[ilir] = lxir_chen(loglir[ilir],scatter=scat)
+endcase
+                         
 loglxir_scat[ilir] = scat
 lxir[ilir] = 10.^loglxir[ilir]
 lxir_scat[ilir] = 10.^loglxir_scat[ilir]
@@ -86,8 +112,6 @@ sav_inds = [sav_inds]
 
 ;; convert LX(LIR) to FX( LX(LIR) ) for flux-limit plots
 ;; erg/s to erg/s/cm^2
-;; luminosity distance
-dl2 = dlum(z,/sq)
 fxir = dblarr(nsrc)
 fxir_scat = dblarr(nsrc)
 logfxir = dblarr(nsrc)-9999.
@@ -97,7 +121,7 @@ fxir_scat[ilir] = lxir_scat[ilir]
 logfxir[ilir] = alog10(fxir[ilir])>(-9999.)
 logfxir_scat[ilir] = loglxir_scat[ilir]
 
-sav_vars = [sav_vars,'DL2','FXIR','FXIR_SCAT','LOGFXIR','LOGFXIR_SCAT']
+sav_vars = [sav_vars,'FXIR','FXIR_SCAT','LOGFXIR','LOGFXIR_SCAT']
 sav_inds = [sav_inds]
 
 
@@ -121,12 +145,12 @@ for i = 0,nfield-1 do begin
     ivalid = where(iivalid,validct)
     if (validct gt 0.) then begin
         ;; K correct flux to rest-frame, f_kcorr = f_obs*(1+z)^(Γ-2)
-        re = execute('flx_kcorr = FLX'+xfield[i]+'[ivalid]*(1+z[ivalid])^(cat_gamma[i]-2.)')
-        re = execute(lx[i]+'[ivalid] = 4.*!const.pi*dl2[ivalid]*flx_kcorr')
-        re = execute(e_lx[i]+'[ivalid] = '+lx[i]+'[ivalid] * sqrt((ERR'+xfield[i]+'[ivalid]/flx_kcorr)^2. + (red_sigm[1,ivalid]/z[ivalid])^2.)')
+        re = execute('fx_kcorr = FX'+xfield[i]+'[ivalid]*(1+z[ivalid])^(cat_gamma[i]-2.)')
+        re = execute(lx[i]+'[ivalid] = 4.*!const.pi*dl2[ivalid]*fx_kcorr')
+        re = execute(e_lx[i]+'[ivalid] = '+lx[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/fx_kcorr)^2. + (red_sigm[1,ivalid]/z[ivalid])^2.)')
         ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case; sanity check)
         iest = where(iivalid and red_sigm[1,*] le 0.,estct)
-        if (estct gt 0) then re = execute(e_lx[i]+'[iest] = '+lx[i]+'[iest] * sqrt((ERR'+xfield[i]+'[iest]/flx_kcorr)^2. + (zerr[iest]/z[iest])^2.)')
+        if (estct gt 0) then re = execute(e_lx[i]+'[iest] = '+lx[i]+'[iest] * sqrt((E_FX'+xfield[i]+'[iest]/fx_kcorr)^2. + (zerr[iest]/z[iest])^2.)')
         ;if (estct gt 0) then re = execute(e_lx[i]+'[iest] = '+lx[i]+'[iest]*0.1')
         re = execute(loglx[i]+'[ivalid] = alog10('+lx[i]+'[ivalid])>(-9999.)')
         re = execute(e_loglx[i]+'[ivalid] = '+e_lx[i]+'[ivalid]/(alog(10.)*'+lx[i]+'[ivalid])>(-9999.)')
@@ -202,9 +226,9 @@ for i = 0,nfield-1 do begin
         ;; start in linear space
         re = execute(lldet[i]+'[ivalid] = lx'+xfield[i]+'[ivalid]/(lxir[ivalid]*lxir_scat[ivalid])')
         ;; errors attributed to X-ray flux and IR flux
-        re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((ERR'+xfield[i]+'[ivalid]/FLX'+xfield[i]+'[ivalid])^2. + (flx_sigm[1,ivalid]/flx_sigm[0,ivalid])^2.)')
+        re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/FX'+xfield[i]+'[ivalid])^2. + (fir_sigm[1,ivalid]/fir_sigm[0,ivalid])^2.)')
         ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case where AGN component; sanity check)
-        iest = where(iivalid and flx_sigm[1,*] le 0.,estct)
+        iest = where(iivalid and fir_sigm[1,*] le 0.,estct)
         if (estct gt 0) then stop
         ;; convert to log space
         re = execute(e_lldet[i]+'[ivalid] /= (alog(10.)*'+lldet[i]+'[ivalid])>(-9999.)')

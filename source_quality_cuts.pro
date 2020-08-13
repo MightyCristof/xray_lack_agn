@@ -55,7 +55,7 @@ sn = 'SN'+xfield
 iisn = 'IISN'+xfield
 ;; S/N cut on X-ray fluxes
 for i = 0,nfield-1 do begin
-    re = execute(sn[i]+' = FLX'+xfield[i]+'/ERR'+xfield[i])
+    re = execute(sn[i]+' = FX'+xfield[i]+'/E_FX'+xfield[i])
     re = execute(iisn[i]+' = SN'+xfield[i]+' ge 3.')
 endfor
 

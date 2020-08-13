@@ -102,14 +102,13 @@ sav_inds = [sav_inds]
 
 ;; create output arrays for X-ray detections
 xray_exp = 'EXP'+xfield
-xray_flx = 'FLX'+xfield
-xray_err = 'ERR'+xfield
+xray_flx = 'FX'+xfield
+xray_err = 'E_FX'+xfield
 xray_cnv = 'CNV'+xfield
+xlog_flx = 'LOGFX'+xfield
+xlog_err = 'E_LOGFX'+xfield
 for i = 0,nfield-1 do begin
-    re = execute(xray_exp[i]+' = dblarr(nsrc)')
-    re = execute(xray_flx[i]+' = dblarr(nsrc)')
-    re = execute(xray_err[i]+' = dblarr(nsrc)')
-    re = execute(xray_cnv[i]+' = dblarr(nsrc)')    
+    
 endfor
 
 ;; closest energy band to 2-10 keV from each instrument
@@ -118,6 +117,13 @@ ixband = {cha:1+lonarr(nxband[0]), $
           xmm:3+lonarr(nxband[1]), $
           nst:0+lonarr(nxband[2])}
 for i = 0,nfield-1 do begin
+    ;; initialize
+    re = execute(xray_exp[i]+' = dblarr(nsrc)')
+    re = execute(xray_flx[i]+' = dblarr(nsrc)')
+    re = execute(xray_err[i]+' = dblarr(nsrc)')
+    re = execute(xlog_flx[i]+' = dblarr(nsrc)-9999.')
+    re = execute(xlog_err[i]+' = dblarr(nsrc)-9999.')
+    re = execute(xray_cnv[i]+' = dblarr(nsrc)')
     ;; energy conversion factors per instrument
     conv = xconv.(i)
     ;; sort by least fractional conversion factor from original chosen band
@@ -136,6 +142,8 @@ for i = 0,nfield-1 do begin
             re = execute(xray_flx[i]+'[ifill] = '+ff_210.(i)[ixband.(i)[b]]+'[ifill]')
             re = execute(xray_err[i]+'[ifill] = '+ee_210.(i)[ixband.(i)[b]]+'[ifill]')
             re = execute(xray_cnv[i]+'[ifill] = conv[ixband.(i)[b]]')
+            re = execute(xlog_flx[i]+'[ifill] = alog10('+xray_flx[i]+'[ifill])>(-9999.)')
+            re = execute(xlog_err[i]+'[ifill] = '+xray_err[i]+'[ifill]/(alog(10.)*'+xray_flx[i]+'[ifill])>(-9999.)')
         endif
     endfor
     nfill = total(iifill)
@@ -146,8 +154,9 @@ for i = 0,nfield-1 do begin
     endif
 endfor
 
-sav_vars = [sav_vars,xray_exp,xray_flx,xray_err,xray_cnv]
+sav_vars = [sav_vars,xray_exp,xray_flx,xray_err,xlog_flx,xlog_err,xray_cnv]
 sav_inds = [sav_inds,'IXBAND']
+
 
 ;; SAVE all variables
 sav_str = strjoin([sav_vars,sav_inds],',')

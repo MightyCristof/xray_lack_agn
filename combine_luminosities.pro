@@ -28,6 +28,10 @@ lx = dblarr(nsrc)
 e_lx = dblarr(nsrc)
 loglx = dblarr(nsrc)-9999.
 e_loglx = dblarr(nsrc)-9999.
+fx = dblarr(nsrc)
+e_fx = dblarr(nsrc)
+logfx = dblarr(nsrc)-9999.
+e_logfx = dblarr(nsrc)-9999.
 ;; non-detections limits
 lxlim = dblarr(nsrc)
 e_lxlim = dblarr(nsrc)
@@ -47,6 +51,10 @@ for i = 0,nfield-1 do begin
         re = execute('e_loglx[idet_fill] = e_loglx'+xfield[i]+'[idet_fill]')
         re = execute('lldet[idet_fill] = LLDET'+xfield[i]+'[idet_fill]')
         re = execute('e_lldet[idet_fill] = E_LLDET'+xfield[i]+'[idet_fill]')
+        re = execute('fx[idet_fill] = FX'+xfield[i]+'[idet_fill]')
+        re = execute('e_fx[idet_fill] = E_FX'+xfield[i]+'[idet_fill]')
+        re = execute('logfx[idet_fill] = LOGFX'+xfield[i]+'[idet_fill]')
+        re = execute('e_logfx[idet_fill] = E_LOGFX'+xfield[i]+'[idet_fill]')
     endif
     re = execute('inon_fill = where(lxlim eq 0. and iifinal_non and IIFINAL_NON'+xfield[i]+',nonct)')
     if (nonct gt 0.) then begin
@@ -60,6 +68,7 @@ for i = 0,nfield-1 do begin
 endfor
 
 sav_vars = ['LX','E_LX','LOGLX','E_LOGLX', $
+            'FX','E_FX','LOGFX','E_LOGFX', $
             'LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM', $
             'LLDET','E_LLDET','LLNON','E_LLNON']
 sav_inds = []

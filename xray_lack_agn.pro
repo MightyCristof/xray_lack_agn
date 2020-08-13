@@ -71,7 +71,8 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 ;; load SED template components
 load_comp,'../comp_*.sav'
 if keyword_set(agnlum) then begin
-    agn_luminosities,/dered
+    agn_luminosities,/dered,rel='chen'
+;    agn_luminosities,/dered,rel='fiore'
     nkeys--
 endif
 load_vars,'src_luminosities.sav','_agnlum'

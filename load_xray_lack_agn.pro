@@ -2,7 +2,7 @@ PRO load_xray_lack_agn, CURRENT = current
 
 
 if keyword_set(current) then cd, current=data_dir else $
-                             data_dir = '/Users/ccarroll/Research/sed_models/qso_sed/xray_supp_agn/run_20200507_final'
+                             data_dir = '/Users/ccarroll/Research/projects/xray_lack_agn/workspace/run_20200507_final_fiore'
 
 path = 'PATH: '+data_dir
 str = strjoin(make_array(strlen(path),value='*'))
