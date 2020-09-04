@@ -22,7 +22,6 @@ load_vars,'detections_nst.sav','_det_nst'
 load_vars,'detections_wac.sav','_det_wac'
 load_vars,'xband_conversions.sav','_xconv'   
 load_vars,'catalog_flux_limits.sav','_fxlim' 
-load_vars,'../comp_*.sav','_comp'              
 load_vars,'src_luminosities.sav','_agnlum'     
 load_vars,'cleaned_cha.sav','_clean_cha'   
 load_vars,'cleaned_xmm.sav','_clean_xmm'   
@@ -35,24 +34,7 @@ popd
 
 END
 
-;       common _fits        
-;       common _inf_cha     
-;       common _inf_xmm     
-;       common _inf_nst     
-;       common _det_cha     
-;       common _det_xmm     
-;       common _det_nst     
-;       common _det_wac     
-;       common _softx       
-;       common _fluxlim     
-;       common _comp        
-;       common _agnlum      
-;       common _clean_cha   
-;       common _clean_xmm   
-;       common _clean_nst   
-;       common _quality     
-;       common _lum_ratio   
-;       common _nhdist      
+
 
 
 

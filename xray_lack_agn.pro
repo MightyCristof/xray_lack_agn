@@ -1,4 +1,5 @@
-PRO xray_lack_agn, INFIELD = infield, $
+PRO xray_lack_agn, PATH = path, $
+                   INFIELD = infield, $
                    DETECT = detect, $
                    CONVERT = convert, $
                    FXLIM = fxlim, $
@@ -9,6 +10,7 @@ PRO xray_lack_agn, INFIELD = infield, $
                    NHDIST = nhdist
 
 
+;; check for keyword commands
 nkeys = n_elements(infield) + $
         n_elements(detect) + $
         n_elements(convert) + $
@@ -20,9 +22,15 @@ nkeys = n_elements(infield) + $
         n_elements(nhdist)
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; load SED output
-load_vars,'fits.sav','_fits'
-load_vars,'resamp.sav','_resamp'
+;; check for input directory else assume current directory
+if (n_elements(path) eq 0) then path = './' else $
+                                path += '/'
+
+;; load SED output and template components
+load_vars,path+'fits.sav','_fits'
+load_vars,path+'resamp.sav','_resamp'
+load_comp,path+'../comp*.sav'
+
 ;; re-sample sources only in X-ray fields
 ;; match sample to WISE AGN Catalog
 if keyword_set(infield) then begin
@@ -68,10 +76,11 @@ load_vars,'catalog_flux_limits.sav','_fxlim'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; calculate IR luminosities and X-ray conversions
-;; load SED template components
-load_comp,'../comp_*.sav'
 if keyword_set(agnlum) then begin
-    agn_luminosities,/dered,rel='chen'
+    ;rel = 'CHEN'
+    rel = 'FIORE'
+    print, "ASSUMING LX-LIR: "+rel
+    agn_luminosities,/dered,rel=rel
 ;    agn_luminosities,/dered,rel='fiore'
     nkeys--
 endif
