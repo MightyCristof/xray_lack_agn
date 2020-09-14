@@ -1,5 +1,5 @@
-FUNCTION lxir_fiore, log_lir, $
-                     SCATTER = scat
+FUNCTION lxir_f09, log_lir, $
+                   SCATTER = scat
 
 
 ;; LX-LIR relationship of Fiore+09

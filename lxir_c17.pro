@@ -1,5 +1,5 @@
-FUNCTION lxir_chen, log_lir, $
-                    SCATTER = scat
+FUNCTION lxir_c17, log_lir, $
+                   SCATTER = scat
 
 
 ;; LX-LIR relationship of Chen+17

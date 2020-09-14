@@ -2,7 +2,8 @@ PRO combine_luminosities
 
 
 common _fits  
-common _resamp     
+common _resamp 
+common _comp           
 common _inf_cha    
 common _inf_xmm    
 common _inf_nst    
@@ -12,7 +13,6 @@ common _det_nst
 common _det_wac    
 common _xconv      
 common _fxlim    
-common _comp       
 common _agnlum 
 common _clean_cha
 common _clean_xmm
@@ -77,11 +77,11 @@ sav_inds = []
 ;;----------------------------------------------------------------------------------------
 ;; LOG E(B-V)
 ;;----------------------------------------------------------------------------------------
-lebv = alog10(ebv)
-lebv = lebv + randomu(seed,nsrc)*0.05-0.05/2.
-lebv[where(~finite(lebv),/null)] = -2.5 
+logebv = alog10(ebv)
+logebv = logebv + randomu(seed,nsrc)*0.05-0.05/2.
+logebv[where(~finite(logebv),/null)] = -2.5 
 
-sav_vars = [sav_vars,'LEBV']
+sav_vars = [sav_vars,'logebv']
 sav_inds = [sav_inds]
 
 

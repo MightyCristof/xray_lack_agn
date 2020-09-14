@@ -27,11 +27,11 @@ sav_vars = ['BINSZ','NHDET_POWER','NHNON_POWER', $
                     'YHIST_DET_POWER','XHIST_DET_POWER','YHIST_NON_POWER','XHIST_NON_POWER']
 sav_inds = []
 
-;; construct distributions by type WAC/Remaining
-;; indices of WISE AGN det_powerections/non_power-det_powerections
+;; construct distributions by type WISE AGN/Remaining
+;; indices of WISE AGN detections/non-detections
 iiwdet_power = iifinal_det and iidet_wac
 iiwnon_power = iifinal_non and iidet_wac
-;; indices of remaining det_powerections/non_power-det_powerections
+;; indices of remaining detections/non-detections
 iirdet_power = iifinal_det and ~iidet_wac
 iirnon_power = iifinal_non and ~iidet_wac
 

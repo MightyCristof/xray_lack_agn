@@ -2,7 +2,8 @@ PRO source_quality_cuts
 
 
 common _fits      
-common _resamp  
+common _resamp 
+common _comp         
 common _inf_cha     
 common _inf_xmm     
 common _inf_nst     
@@ -12,7 +13,6 @@ common _det_nst
 common _det_wac     
 common _xconv      
 common _fxlim     
-common _comp        
 common _agnlum
 common _clean_cha   
 common _clean_xmm   

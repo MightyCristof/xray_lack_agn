@@ -4,6 +4,7 @@ PRO agn_luminosities, DERED = dered, $
 
 common _fits
 common _resamp
+common _comp
 common _inf_cha
 common _inf_xmm
 common _inf_nst
@@ -12,12 +13,11 @@ common _det_xmm
 common _det_cha
 common _xconv
 common _fxlim
-common _comp
 
 
 ;; check LX-LIR RELATION
 rel = strupcase(rel)
-if (total([strmatch(rel,'CHEN'),strmatch(rel,'FIORE')]) eq 0) then begin
+if (total([strmatch(rel,'C17'),strmatch(rel,'F09')]) eq 0) then begin
     print, "INVALID LX-LIR RELATION"
     return
 endif
@@ -31,8 +31,14 @@ ilir = where(iilir,nagn,ncomplement=ngal,/null)
 ebv = reform(param[0,*])
 e_ebv = reform(ebv_sigm[1,*])
 ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), -9999 (no AGN)
-iest = where(iilir and ebv_sigm[1,*] le 0,estct)
-if (estct gt 0.) then e_ebv[iest] = ebv[iest]*0.1
+icest = where(iilir and ebv_sigm[1,*] le 0,cestct)
+if (cestct gt 0.) then e_ebv[icest] = ebv[icest]*0.1
+;; SED best fit redshift parameter
+zsed = reform(param[1,*])
+e_zsed = reform(red_sigm[1,*])
+;; check resamp distribution for -1 (only one source), use original redshift error
+izest = where(e_zsed le 0,zestct)
+if (zestct gt 0.) then e_zsed[izest] = zerr[izest]
 ;; luminosity distance
 dl2 = dlum(z,/sq)
 
@@ -43,7 +49,7 @@ dl2 = dlum(z,/sq)
 agnf6 = f_agn(6.,param,model=agnm6)
 agnf15 = f_agn(15.,param,model=agnm15)
 
-sav_vars = ['EBV','E_EBV','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15','DL2']
+sav_vars = ['EBV','E_EBV','ZSED','E_ZSED','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15','DL2']
 sav_inds = ['IILIR']
 
 
@@ -68,8 +74,10 @@ endif else $
 ;; correct AGN luminosity where template over- or underestimates beyond uncertainties
 ;; luminosity corrected
 lcorr = correct_agn_lum(wave,flux,e_flux,param)
-iicorr = lcorr ne 0.
-lir[ilir] += lcorr[ilir]
+iicorr = fix(lcorr ne 0.)
+iicorr[where(iicorr and lcorr lt 1.,/null)] = -1
+icorr = where(iicorr ne 0.,corrct)
+if (corrct gt 0) then lir[icorr] *= lcorr[icorr]
 e_lir[ilir] = reform(lir_sigm[1,ilir])
 fir[ilir] = lir[ilir]/(4.*!const.pi*dl2[ilir])
 e_fir[ilir] = reform(fir_sigm[1,ilir])
@@ -98,8 +106,8 @@ lxir_scat = dblarr(nsrc)
 loglxir = dblarr(nsrc)-9999.
 loglxir_scat = dblarr(nsrc)-9999.
 case rel of 
-    'FIORE': loglxir[ilir] = lxir_fiore(loglir[ilir],scatter=scat)
-    'CHEN': loglxir[ilir] = lxir_chen(loglir[ilir],scatter=scat)
+    'F09': loglxir[ilir] = lxir_f09(loglir[ilir],scatter=scat)
+    'C17': loglxir[ilir] = lxir_c17(loglir[ilir],scatter=scat)
 endcase
                          
 loglxir_scat[ilir] = scat

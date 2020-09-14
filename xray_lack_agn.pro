@@ -1,4 +1,4 @@
-PRO xray_lack_agn, PATH = path, $
+PRO xray_lack_agn, subdir, $
                    INFIELD = infield, $
                    DETECT = detect, $
                    CONVERT = convert, $
@@ -22,14 +22,28 @@ nkeys = n_elements(infield) + $
         n_elements(nhdist)
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; check for input directory else assume current directory
-if (n_elements(path) eq 0) then path = './' else $
-                                path += '/'
+;; assume current directory unless specified
+if (n_elements(subdir) eq 0) then path = './' else $
+                                  path = subdir+'/' & file_mkdir,path
+
+;; print LX-LIR information to screen
+if keyword_set(agnlum) then begin
+    rel = 'F09'
+    if (strmatch(strupcase(agnlum),'C17')) then rel = 'C17'
+    print, ''
+    print, '***********************************************'
+    print, '********     LX-LIR RELATION: '+rel+'      ********'
+    print, '***********************************************'
+    print, ''
+endif
 
 ;; load SED output and template components
-load_vars,path+'fits.sav','_fits'
-load_vars,path+'resamp.sav','_resamp'
-load_comp,path+'../comp*.sav'
+load_vars,'fits.sav','_fits'
+load_vars,'resamp.sav','_resamp'
+load_comp,'../data_prep/comp*.sav'
+
+;; directory for output
+pushd,path
 
 ;; re-sample sources only in X-ray fields
 ;; match sample to WISE AGN Catalog
@@ -77,11 +91,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; calculate IR luminosities and X-ray conversions
 if keyword_set(agnlum) then begin
-    ;rel = 'CHEN'
-    rel = 'FIORE'
-    print, "ASSUMING LX-LIR: "+rel
     agn_luminosities,/dered,rel=rel
-;    agn_luminosities,/dered,rel='fiore'
     nkeys--
 endif
 load_vars,'src_luminosities.sav','_agnlum'
@@ -123,8 +133,10 @@ endif
 load_vars,'nh_dist.sav','_nhdist'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-
 NO_KEYS:
+popd
+
+
 END
 
 
