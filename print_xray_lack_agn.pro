@@ -25,6 +25,7 @@ common _quality
 common _combined
 common _nhdist
 
+restore,'phot_spec_errs.sav'
 
 file_mkdir,'tables'
 
@@ -33,6 +34,35 @@ if keyword_set(commands) then begin
     table_name='tables/list_newcommands.tex' 
     OPENW,1,table_name
     printf,1,'%% Sample numbers'
+    printf,1,'\newcommand{\rawsdss}{187,176,677\xspace}'
+    printf,1,'\newcommand{\rawxdqso}{5,537,436\xspace}'
+    printf,1,'\newcommand{\rawwise}{747,634,026\xspace}'
+    printf,1,'\newcommand{\rawunw}{469,037,483\xspace}'
+    printf,1,'\newcommand{\rawuk}{84,440,794\xspace}'
+    printf,1,'\newcommand{\raw2m}{470,992,970\xspace}'
+    printf,1,'\newcommand{\rawgalex}{\xspace}'
+
+    printf,1,'\newcommand{\ninit}{80,236,261\xspace}'
+    printf,1,'\newcommand{\nisdss}{78,794,318\xspace}'
+    printf,1,'\newcommand{\nizsupp}{3,672\xspace}'
+    printf,1,'\newcommand{\nixdqso}{1,441,943\xspace}'
+    printf,1,'\newcommand{\niwise}{80,236,261\xspace}'
+    printf,1,'\newcommand{\niunw}{80,230,855\xspace}'
+    printf,1,'\newcommand{\niuk}{18,671,693\xspace}'
+    printf,1,'\newcommand{\ni2m}{4,271,320\xspace}'
+    printf,1,'\newcommand{\nigalex}{7,775,179\xspace}'
+
+    printf,1,'\newcommand{\nfin}{80,236,261\xspace}'
+    printf,1,'\newcommand{\nfsdss}{78,794,318\xspace}'
+    printf,1,'\newcommand{\nfzsupp}{3,672\xspace}'
+    printf,1,'\newcommand{\nfxdqso}{1,441,943\xspace}'
+    printf,1,'\newcommand{\nfwise}{80,236,261\xspace}'
+    printf,1,'\newcommand{\nfunw}{80,230,855\xspace}'
+    printf,1,'\newcommand{\nfuk}{18,671,693\xspace}'
+    printf,1,'\newcommand{\nf2m}{0\xspace}'
+    printf,1,'\newcommand{\nfgalex}{7,775,179\xspace}'
+
+    
     printf,1,'\newcommand{\ngal}{'+commas(ngal)+'\xspace}'
     printf,1,'\newcommand{\nagn}{'+commas(nagn)+'\xspace}'
     printf,1,'\newcommand{\ndet}{'+commas(n_elements(where(iidet,/null)))+'\xspace}'
@@ -82,6 +112,8 @@ if keyword_set(commands) then begin
     printf,1,'\newcommand{\prctdetwagn}{'+strtrim(round(total(iidet_wac and iifinal_det)/total(iifinal)*100),2)+'\%\xspace}'
     printf,1,'\newcommand{\prctnonwagn}{'+strtrim(round(total(iidet_wac and iifinal_non)/total(iifinal)*100),2)+'\%\xspace}'
     printf,1,'\newcommand{\prctctwagn}{${\sim}$'+strtrim(round(total(iidet_wac and iifinal_non and llnon le (rl2nh(alog10(1.5e24),model='BORUS',/lum_out))[0])/total(iidet_wac and iifinal_non)*100),2)+'\%\xspace}'
+    printf,1,'\newcommand{\mad}{'+string(rnd(mad,3),format="(d5.3)")+'\xspace}'
+    printf,1,'\newcommand{\madfin}{'+string(rnd(madfin,3),format="(d5.3)")+'\xspace}'
     CLOSE,1
 endif
 

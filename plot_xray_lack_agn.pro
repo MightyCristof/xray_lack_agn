@@ -4,10 +4,10 @@ PRO plot_xray_lack_agn, PHOT_SPEC = phot_spec, $
                         FLUX_LIMIT = flux_limit, $
                         LUM_RATIO = lum_ratio, $
                         NH_DIST = nh_dist, $
-                        SHOW = show, $
-                        REDO = redo, $
+                        HIDE = hide, $
+                        NEW = new, $
                         SAV = sav, $
-                        ALL = all       
+                        LOW_RES = low_res       
 
 
 ;; load data
@@ -32,6 +32,8 @@ common _combined
 common _nhdist
 
 
+if keyword_set(low_res) then res = 100 else res = 600
+
 file_mkdir,'figures'
 ;;----------------------------------------------------------------------------------------
 ;; SEDs
@@ -41,7 +43,7 @@ if keyword_set(phot_spec) then begin
     
     file = file_search()
     ifile = where(strmatch(file,'phot_spec_srcs.sav'),nfile)
-    if keyword_set(redo) then nfile = 0
+    if keyword_set(new) then nfile = 0
     if (nfile eq 0) then begin
         ;; zCOSMOS
         ;dir_cosmos = '/Users/ccarroll/Research/surveys/COSMOS/zCOSMOS/cesam_zcosbrightspec20k_dr3_catalog_1513358585.fits'
@@ -102,14 +104,14 @@ if keyword_set(phot_spec) then begin
     zs_in = ages[iages].z1
     zp_in = zp_fin[isamp]
     delz_in = (zp_in-zs_in)/(1+zs_in)
-    mad_in = medabsdev(delz_in)
+    madfin = medabsdev(delz_in)
         
     e = {xra:[0.,1.0],yra:[0.,0.6],aspect_ratio:1, $
          sym_size:0.5,sym_filled:1,transparency:75, $
          xtitle:'$!8z!7_{spec} (VLT)$',ytitle:'$!8z!7_{phot} (SDSS)$', $
          font_name:'Times',font_size:14, $
-         dimension:[700,800],buffer:1}
-    if keyword_set(show) then e.buffer = 0
+         dimension:[700,800],buffer:0}
+    if keyword_set(hide) then e.buffer = 1
     col = [0,114,178]
     col_in = [[204,121,167],[213,94,0],[0,158,115],[0,114,178],[240,228,66]]
     p = plot(zs,zp,'o',color=col,_extra=e)
@@ -121,12 +123,14 @@ if keyword_set(phot_spec) then begin
     ;if (noff gt 0) then poff = arrow(transpose([[make_array(noff,value=e.xra[1]-0.012)],[make_array(noff,value=e.xra[1])-0.002]]),transpose([[zp[ioff]],[zp[ioff]]]),color=col,/ov,/data,fill_transparency=100,head_size=0.8,clip=1,target=p)
     p.axes[0].showtext = 0
     ;p.ytickvalues = (p.ytickvalues)[0:-2]
+    num_str = '$Num. matches = '+commas(strtrim(n_elements(zs),2))+' ('+strtrim(n_elements(zs_in),2)+')'+'$'
+    t = text(target=p,e.xra[1]*0.95,e.yra[1]*0.05,num_str,/data,alignment=1,font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
     ;; residuals plot
     er = {xra:e.xra,yra:[-0.8,0.8],aspect_ratio:0, $
           sym_size:0.5,sym_filled:1,transparency:75, $
-          xtitle:'$!8z!7_{spec} (VLT)$',ytitle:'$\Delta!8z!7 / (1+!8z!7_{spec})$', $
+          xtitle:'$!8z!7_{spec} (MMT)$',ytitle:'$\Delta!8z!7 / (1+!8z!7_{spec})$', $
           font_name:'Times',font_size:14, $
-          dimension:[700,800],buffer:1}
+          dimension:[700,800],buffer:0}
     pr = plot(zs,delz,'o',color=col,_extra=er,/current)
     pr.position = [p.position[0],0.13195312,p.position[2],p.position[1]]
     pr = plot(p.xra,[0,0],'--',thick=2,/ov)
@@ -137,8 +141,8 @@ if keyword_set(phot_spec) then begin
     ;if (er.yra[1] mod 2 ne 0) then pr.xtickvalues = (pr.xtickvalues)[0:-2]
     pr.ytickvalues = [-0.4,0.,0.4]
     pr.yminor = 3.
-    mad_str = '$\sigma_{MAD} = '+string(rnd(mad,3),format='(d5.3)')+' ('+string(rnd(mad_in,3),format='(d5.3)')+')'+'$'
-    t = text(target=pr,er.xra[1]*0.58,er.yra[1]*0.62,mad_str,/data,font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
+    mad_str = '$\sigma_{MAD} = '+string(rnd(mad,3),format='(d5.3)')+' ('+string(rnd(madfin,3),format='(d5.3)')+')'+'$'
+    t = text(target=pr,er.xra[1]*0.95,er.yra[1]*0.62,mad_str,/data,alignment=1,font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
     ;; histogram of residuals
     yh = histogram(delz,bin=scott(delz),locations=xh)
     eh = {xra:[0.,ceil(max(yh)/95.)*100.],yra:[-0.3,0.3], $
@@ -178,12 +182,14 @@ if keyword_set(phot_spec) then begin
     print, 'NUM. MISSES: ' + strtrim(noff,2)
     print, 'NUM. SAMPLE:   ' + strtrim(n_elements(zs_in),2)   
     print, 'SIGMA MAD:  ' + strtrim(mad,2)
-    print, 'SIGMA MAD FINAL: ' + strtrim(mad_in,2)
+    print, 'SIGMA MAD FINAL: ' + strtrim(madfin,2)
+    
+    save,mad,madfin,file='phot_spec_errs.sav'
 
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
         if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/phot_v_spec.eps',/BITMAP else $
-                                                     p.save,'figures/phot_v_spec.png';,resolution=20
+                                                     p.save,'figures/phot_v_spec.png',resolution=res
     endif
 endif
 
@@ -219,11 +225,13 @@ if keyword_set(seds) then begin
     plot_flux = flux[*,inds]
     plot_err = e_flux[*,inds]
     plot_bin = bin[*,inds]
+    plot_ra = ra[inds]
+    plot_dec = dec[inds]
     plot_id = objid[inds]
     plot_z = z[inds]
     plot_zerr = zerr[inds]
     plot_fits = param[*,inds]
-    plot_ebvsig = ebv_sigm[1,inds]>0.
+    plot_ebvsig = sig_ebv[1,inds]>0.
     ;; extract model parameters
     plot_ebv = plot_fits[0,*]
     coeff = plot_fits[2:2+ntemps-1,*]
@@ -248,6 +256,14 @@ if keyword_set(seds) then begin
     model = alog10(model)
     ;print, agn[value_locate(tempwav[*,0],6.),0]
     ;; string variables for call to TEXT()
+    ;plot_pos = strtrim(plot_ra,2)+','
+    ;plot_pos[where(plot_dec gt 0.)] += '+'
+    ;plot_pos[*] += strtrim(plot_dec,2)
+    plot_ra = strtrim(plot_ra,2)
+    str_dec = strarr(nplt)+'+'
+    str_dec[where(plot_dec gt 0.)] += strtrim(plot_dec[where(plot_dec gt 0.)],2)
+    str_dec[where(plot_dec lt 0.)] = strtrim(plot_dec[where(plot_dec lt 0.)],2)
+    plot_dec = str_dec
     plot_z = strtrim(string(plot_z,format='(d5.3)'),2)
     plot_zerr = strtrim(string(plot_zerr,format='(d5.3)'),2)
     plot_ebv = strtrim(string(plot_ebv,format='(d5.2)'),2)
@@ -261,12 +277,14 @@ if keyword_set(seds) then begin
          ;xtitle:'$\lambda (observed) [ \mum ]$',ytitle:'$log  \nu!8F!7_\nu  [erg s^{-1}cm^{-2}]$', $
          ;nodata:1,dimension:[1140,890], $       pos = [[80,455,585,835],[585,455,1090,835],[80,75,585,455],[585,75,1090,455]]
          nodata:1,dimension:[1140,1270], $      
-         buffer:1}
-    if keyword_set(show) then e.buffer = 0
+         buffer:0}
+    if keyword_set(hide) then e.buffer = 1
     pos = [[80,835,585,1215],[585,835,1090,1215],[80,455,585,835],[585,455,1090,835],[80,75,585,455],[585,75,1090,455]]
     ;label = transpose([['         ID : '+strtrim(plot_id,2)],['$            !8z!7 : $'+plot_z],['$!8E!7(!8B-V!7)$ : '+plot_ebv],['$\chi^2 / DoF$ : '+chi]])
     ;label = transpose([['ID :          '+strtrim(plot_id,2)],['$!8z!7 :             $'+plot_z],['$!8E!7(!8B-V!7)$ : '+plot_ebv],['$\chi^2 / DoF$ : '+chi]])
-    label = transpose([['ObjID: '+strtrim(plot_id,2)],['$!8z!7 = $'+plot_z+'$\pm$'+plot_zerr],['$!8E!7(!8B-V!7)$ = '+plot_ebv+'$\pm$'+plot_ebvsig],['$\chi^2 / DoF$ = '+plot_chi]])
+    ;label = transpose([['ObjID: '+strtrim(plot_id,2)],['$!8z!7 = $'+plot_z+'$\pm$'+plot_zerr],['$!8E!7(!8B-V!7)$ = '+plot_ebv+'$\pm$'+plot_ebvsig],['$\chi^2 / DoF$ = '+plot_chi]])
+    ;label = transpose([['RA/Dec: '+plot_pos],['$!8z!7: $'+plot_z+'$\pm$'+plot_zerr],['$!8E!7(!8B-V!7)$: '+plot_ebv+'$\pm$'+plot_ebvsig],['$\chi^2 / DoF$: '+plot_chi]])
+    label = transpose([['RA: '+plot_ra],['Dec: '+plot_dec],['$!8z!7: $'+plot_z+'$\pm$'+plot_zerr],['$!8E!7(!8B-V!7)$: '+plot_ebv+'$\pm$'+plot_ebvsig],['$\chi^2 / DoF$: '+plot_chi]])
     for i = 0,nplt-1 do begin
         if (i eq 0) then current = 0 else current = 1
         ig = where(plot_bin[*,i],/null)
@@ -280,11 +298,11 @@ if keyword_set(seds) then begin
         p_irr = plot(tempwav[*,i],irr[*,i],col=col[*,3],thick=2,linestyle=linestyle[3],/ov,name=' IRR')
         p = plot(tempwav[*,i],model[*,i],col='dark slate grey',thick=2,/ov)                                                           ;; plot coadded models
         p = errorplot(objwav[ig,i],plot_flux[ig,i],plot_err[ig,i],'o',SYM_FILLED=1,LINESTYLE='',sym_size=1.5,errorbar_thick=2,/OV)          ;; plot photometry
-        for t = 0,ntemps-1 do begin
-            lab = text(0.07,e.yra[1]-0.32*(1.8+t),label[t,i],font_size=14,/DATA,target=p,font_name='Times')
+        for t = 0,n_elements(label[*,0])-1 do begin
+            lab = text(0.07,e.yra[1]-(1.5+t)/2.4,label[t,i],font_size=16,/DATA,target=p,font_name='Times')
             ;fit = text(1.95,yp-t*0.35,temps[t]+': '+coeff[t,i],col=col[*,t],font_size=12,/DATA,TARGET=p,font_name='Times')
         endfor
-        if (i eq 1) then l = legend(target=[p_agn,p_ell,p_sfg,p_irr],position=[0.91,0.95],/auto_text_color,sample_width=0.1,horizontal_spacing=0.06,font_name='Times')
+        if (i eq 1) then l = legend(target=[p_agn,p_ell,p_sfg,p_irr],position=[0.92,0.95],/auto_text_color,sample_width=0.07,horizontal_spacing=0.06,font_name='Times')
     endfor
     xt = text(0.52,0.025,'$\lambda (observed) [ \mum ]$',alignment=0.5,font_size=14,font_name='Times')
     yt = text(0.028,0.52,'$log  \nu!8F!7_\nu  [erg s^{-1}cm^{-2}]$',orientation=90,alignment=0.5,font_size=14,font_name='Times')
@@ -292,7 +310,7 @@ if keyword_set(seds) then begin
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
         if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/sed_models.eps',/BITMAP else $
-                                                     p.save,'figures/sed_models.png';,resolution=20
+                                                     p.save,'figures/sed_models.png',resolution=res
     endif
 endif
 
@@ -340,17 +358,20 @@ if keyword_set(lx_lir) then begin
     
     e = {xra:[41.,47.5],yra:[41.,46.5], $
          font_name:'Times',font_size:14, $
-         xtitle:'$log  !8L!7_{6 \mu m} [erg s^{-1}cm^{-2}]$'}
-    if keyword_set(show) then buff = 0 else buff = 1
+         xtitle:'$log  !8L!7_{6 \mu m} [erg s^{-1}cm^{-2}]$', $
+         buffer:0}
+    if keyword_set(hide) then e.buffer = 1
+    rel_lin = ['-','-']
+    ;rel_col = [[105,105,105],[0,0,0]]
     rel_col = [[0,158,115],[213,94,0]]
     ;; [0,158,115]  [204,121,167]
     im1 = image('chen17_bw1.png',transparency=50,dimension=[640,877],position=[80,440,587,810],buffer=buff,/device)
     pnodata = plot(xrel_chen,yrel_chen,_extra=e,/current,position=im1.position)
     cqso1 = contour(hist1,xlum,ylum,c_thick=4,rgb_table=colortable(49,/reverse),/fill,/ov,c_label_show=0,name='$!8E(B-V)!7 \leq  0.15$')
-    prel_chen = plot(xrel_chen,yrel_chen,'-',col=rel_col[*,0],thick=4,_extra=e,/ov,position=im1.position,name='Chen+17')
-    prel_fiore = plot(xrel_fiore,yrel_fiore,'-',col=rel_col[*,1],thick=4,/ov,name='Fiore+09')
+    prel_chen = plot(xrel_chen,yrel_chen,linestyle=rel_lin[0],col=rel_col[*,0],thick=4,_extra=e,/ov,position=im1.position,name='Chen+17')
+    prel_fiore = plot(xrel_fiore,yrel_fiore,linestyle=rel_lin[1],col=rel_col[*,1],thick=4,/ov,name='Fiore+09')
     chent = text(41.15,42.3,/data,target=prel_chen,'Chen+17',col=rel_col[*,0],font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
-    fioret = text(42.15,41.5,/data,target=prel_fiore,'Fiore+09',col=rel_col[*,1],font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
+    fioret = text(41.95,41.3,/data,target=prel_fiore,'Fiore+09',col=rel_col[*,1],font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
     prel_chen.axes[0].showtext = 0
     ;p = plot([median(xlum[ind1[0,*]])],[median(ylum[ind1[1,*]])],'o',col='black',sym_size=1.5,/ov)
     ;p = plot([median(xlum[ind1[0,*]])],[median(ylum[ind1[1,*]])],'S',col='black',sym_size=1.0,sym_filled=1,/ov)
@@ -376,7 +397,7 @@ if keyword_set(lx_lir) then begin
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
         if (strupcase(strtrim(sav,2)) eq 'EPS') then im1.save,'figures/lx_v_lir.eps',/BITMAP else $
-                                                     im1.save,'figures/lx_v_lir.png';,resolution=20
+                                                     im1.save,'figures/lx_v_lir.png',resolution=res
     endif
 endif
 
@@ -401,8 +422,8 @@ if keyword_set(flux_limit) then begin
          xlog:1,ylog:0, $
          xtitle:'$exposure time [s]$',ytitle:'$log  !8F!7_{2-10 keV} [erg s^{-1}cm^{-2}]$', $
          font_name:'Times',font_size:14, $ $
-         buffer:1}
-    if keyword_set(show) then e.buffer = 0
+         buffer:0}
+    if keyword_set(hide) then e.buffer = 1
 ;    xra = [[8e2,max(texp_cha)],[8e2,max(texp_xmm)],[2e3,max(texp_nst)>3e5]]
     xra = [[8e2,3e5],[8e2,3e5],[2e3,3e5]]
     
@@ -458,7 +479,6 @@ if keyword_set(flux_limit) then begin
         perr = plot([xpt[i]],ypt,'S',col='white',sym_size=1.5,sym_filled=1,/ov)
         perr = plot([xpt[i]],ypt,'S',col='dodger blue',sym_size=1.5,sym_filled=0,/ov)
         if (i eq 2) then terr = text(xpt[i]*1.4,ypt,target=perr,/data,'$Median \sigma_{log !8F!7}$',vertical_alignment=0.5,font_size=12,font_name='Times')
-        
         ;if (i ne axis_src) then p.axes[which_axis].showtext = 0
         t = text(0.94,0.88,cat[i],target=p,/RELATIVE,font_size=16,font_style='Bold italic',alignment=1.,font_name='Times')
         if (i eq leg_src) then l = legend(target=[pdet,pnon,pcat_dark],position=leg_pos,/normal,/auto_text_color,sample_width=0,horizontal_spacing=0.06,vertical_alignment=0.5,horizontal_alignment=0)
@@ -470,7 +490,7 @@ if keyword_set(flux_limit) then begin
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
         if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/fx_limits.eps',/BITMAP else $
-                                                     p.save,'figures/fx_limits.png';,resolution=20
+                                                     p.save,'figures/fx_limits.png',resolution=res
     endif
 endif
 
@@ -491,8 +511,8 @@ if keyword_set(lum_ratio) then begin
     ell = {xra:[-3.8,2.2],yra:[-3.,1.], $
            font_name:'Times',font_size:14, $
            dimension:[1180,880], $
-           buffer:1}
-    if keyword_set(show) then ell.buffer = 0
+           buffer:0}
+    if keyword_set(hide) then ell.buffer = 1
 
     nh = [21.:25.5:0.25]
     ll = rl2nh(nh,model=model,/lum_out)
@@ -529,10 +549,10 @@ if keyword_set(lum_ratio) then begin
     ;ioff = where(iifinal_det and iidet_wac and lldet lt ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; median error bars
-    perr = plot([-2.2],[ell.yra[0]+0.5],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[ell.yra[0]+0.5],[median(e_lldet[where(iifinal_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5] ,"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
+    perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iifinal_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.] ,"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
@@ -550,8 +570,6 @@ if keyword_set(lum_ratio) then begin
     endfor
     ;; remove axes
     pwlldet.axes[0].showtext=0
-    ;; model choice
-    mt = text(-0.8,ell.yra[0]+0.5,'Power law model',target=pwlldet,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
     ;; Remaining sources
     pr = plot(logebv[where(iifinal_non)],llnon[where(iifinal_non)],_extra=ell,position=[595,445,1105,825],current=1,/device,/nodata)
     pr.axes[1].showtext = 0 & pr.axes[0].showtext = 0
@@ -575,12 +593,6 @@ if keyword_set(lum_ratio) then begin
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;ioff = where(iifinal_det and ~iidet_wac and lldet lt ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;; median error bars
-    perr = plot([-2.2],[ell.yra[0]+0.5],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[ell.yra[0]+0.5],[median(e_lldet[where(iifinal_det and ~iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
-    terr = text([-2.2]+0.3,[ell.yra[0]+0.5],target=perr,/data,'$Median \sigma_{!8R_{L}!7}$',vertical_alignment=0.5,font_size=12,font_name='Times')
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
@@ -593,15 +605,17 @@ if keyword_set(lum_ratio) then begin
         p = plot(nh_lines,ll_lines[i]*[1.,1.],'--',col='black',thick=2,/ov)
         t = text(ell.xra[0]+0.2,ypos[i],nhtext[i],col='black',/data,target=[prllnon],alignment=0.,font_size=11,font_name='Times')
     endfor
-        
+    ;; model choice
+    mt = text(-3.6,ell.yra[0]+0.5,'Power law model',target=prlldet,alignment=0.,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
+    
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; PLOT NH VS E(B-V)
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     enh = {xra:[-3.8,2.2],yra:[20.5,25.5], $
            font_name:'Times',font_size:14, $
            dimension:[1130,880], $
-           buffer:1}
-    if keyword_set(show) then enh.buffer = 0
+           buffer:0}
+    if keyword_set(hide) then enh.buffer = 1
     
     nhxdet = rl2nh(lldet,model=model)
     nhxnon = rl2nh(llnon,model=model)
@@ -628,6 +642,11 @@ if keyword_set(lum_ratio) then begin
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;ioff = where(iifinal_det and iidet_wac and nhxdet lt enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
+    ;; median error bars
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
+    perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[0.333],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text
@@ -644,7 +663,7 @@ if keyword_set(lum_ratio) then begin
     prnhdet = plot(logebv[where(iifinal_det and ~iidet_wac)],nhxdet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
     p = plot(logebv[where(iifinal_det and ~iidet_wac)],nhxdet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.5,transparency=85,/ov)
     prnhnon = plot(logebv[where(iifinal_non and ~iidet_wac)],nhxnon[where(iifinal_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,position=[595,65,1105,445],_extra=ell,axis_style=0)
-    a_rnhnon = axis('y',target=pr,location=[enh.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8N!7_H (lim)[cm^{-2}]$',tickfont_name='Times',tickfont_size=14)
+    a_rnhnon = axis('y',target=pr,location=[enh.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8N!7_H (lim)[cm^{-2}]$',tickfont_name='Times',tickfont_size=14)    
     ;; non-detections off plot range
     ;ioff = where(iifinal_non and ~iidet_wac and nhxnon ge enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
@@ -656,16 +675,16 @@ if keyword_set(lum_ratio) then begin
     ;ioff = where(iifinal_det and ~iidet_wac and nhxdet lt enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; CT lines
-    p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
+    p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)    
     ;; legend
     l = legend(target=[prlldet,prllnon],/normal,/auto_text_color,sample_width=0.,horizontal_spacing=0.06,font_name='Times')
     l.position = [0.67,0.49]
-    
+
     xt = text(0.52,0.02,'$log  !8E!7(!8B-V!7)$',alignment=0.5,font_size=14,font_name='Times')
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
         if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/rlum_b.eps',/BITMAP else $
-                                                     p.save,'figures/rlum_b.png';,resolution=20                             
+                                                     p.save,'figures/rlum_b.png',resolution=res
     endif
 
     ;model = 'POWER'
@@ -709,10 +728,10 @@ if keyword_set(lum_ratio) then begin
     ;ioff = where(iifinal_det and iidet_wac and lldet lt ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; median error bars
-    perr = plot([-2.2],[ell.yra[0]+0.5],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[ell.yra[0]+0.5],[median(e_lldet[where(iifinal_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
+    perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iifinal_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
@@ -730,8 +749,6 @@ if keyword_set(lum_ratio) then begin
     endfor
     ;; remove axes
     pwlldet.axes[0].showtext=0
-    ;; model choice
-    mt = text(-0.8,ell.yra[0]+0.5,'BORUS model',target=pwlldet,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
     
     ;; Remaining sources
     pr = plot(logebv[where(iifinal_non)],llnon[where(iifinal_non)],_extra=ell,position=[595,445,1105,825],current=1,/device,/nodata)
@@ -755,12 +772,6 @@ if keyword_set(lum_ratio) then begin
     if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ioff = where(iifinal_det and ~iidet_wac and lldet lt ell.yra[0],noff)
     if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;; median error bars
-    perr = plot([-2.2],[ell.yra[0]+0.5],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[ell.yra[0]+0.5],[median(e_lldet[where(iifinal_det and ~iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[ell.yra[0]+0.5],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
-    terr = text([-2.2]+0.3,[ell.yra[0]+0.5],target=perr,/data,'$Median \sigma_{!8R_{L}!7}$',vertical_alignment=0.5,font_size=12,font_name='Times')
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
@@ -773,7 +784,9 @@ if keyword_set(lum_ratio) then begin
         p = plot(nh_lines,ll_lines[i]*[1.,1.],'--',col='black',thick=2,/ov)
         t = text(ell.xra[0]+0.2,ypos[i],nhtext[i],col='black',/data,target=[prllnon],alignment=0.,font_size=11,font_name='Times')
     endfor
-    
+    ;; model choice
+    mt = text(-3.6,ell.yra[0]+0.5,'BORUS model',target=prlldet,alignment=0.,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
+
     ;; remove axes
     prlldet.axes[1].showtext=0
     prlldet.axes[0].showtext=0
@@ -810,6 +823,11 @@ if keyword_set(lum_ratio) then begin
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;ioff = where(iifinal_det and iidet_wac and nhxdet lt enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
+    ;; median error bars
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
+    perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[0.333],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text
@@ -847,7 +865,7 @@ if keyword_set(lum_ratio) then begin
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
         if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/rlum_a.eps',/BITMAP else $
-                                                     p.save,'figures/rlum_a.png';,resolution=20                             
+                                                     p.save,'figures/rlum_a.png',resolution=res
     endif
 endif
 
@@ -864,8 +882,8 @@ if keyword_set(nh_dist) then begin
          stairstep:1,fill_background:1, $
          dimension:[1130,880], $
          font_name:'Times', $
-         buffer:1}
-    if keyword_set(show) then e.buffer = 0    
+         buffer:0}
+    if keyword_set(hide) then e.buffer = 1    
     if (normalize eq 1) then e.yra = [0.,1.2]
     
     ;; BORUS MODEL
@@ -880,8 +898,8 @@ if keyword_set(nh_dist) then begin
     ctwn_borus = commas(fix(total(yhist_wnon_borus)))
     
     ;; arrow x/y span
-    yarr = [3.:6.]
-    yarr = transpose([[yarr/10.5],[yarr/10.5]])
+    yarr = [1.:5.]
+    yarr = transpose([[yarr/10.],[yarr/10.]])
     if (normalize eq 1) then yarr*=e.yra[1]
     ;xarr = transpose([[intarr(5)+alog10(1.5e24)+0.1],[intarr(5)+alog10(1.5e24)+0.3]])
     xarr = transpose([[intarr(n_elements(yarr[0,*]))-0.1],[intarr(n_elements(yarr[0,*]))+0.1]])
@@ -1011,7 +1029,7 @@ if keyword_set(nh_dist) then begin
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
         if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/nh_dist.eps',/BITMAP else $
-                                                     p.save,'figures/nh_dist.png';,resolution=20
+                                                     p.save,'figures/nh_dist.png',resolution=res
                              
     endif
 endif

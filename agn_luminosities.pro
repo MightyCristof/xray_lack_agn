@@ -29,13 +29,13 @@ iilir = c_agn gt 0.                 ;; AGN SED contribution exists
 ilir = where(iilir,nagn,ncomplement=ngal,/null)
 ;; extinction parameter
 ebv = reform(param[0,*])
-e_ebv = reform(ebv_sigm[1,*])
+e_ebv = reform(sig_ebv[1,*])
 ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), -9999 (no AGN)
-icest = where(iilir and ebv_sigm[1,*] le 0,cestct)
+icest = where(iilir and sig_ebv[1,*] le 0,cestct)
 if (cestct gt 0.) then e_ebv[icest] = ebv[icest]*0.1
 ;; SED best fit redshift parameter
 zsed = reform(param[1,*])
-e_zsed = reform(red_sigm[1,*])
+e_zsed = reform(sig_red[1,*])
 ;; check resamp distribution for -1 (only one source), use original redshift error
 izest = where(e_zsed le 0,zestct)
 if (zestct gt 0.) then e_zsed[izest] = zerr[izest]
@@ -78,11 +78,11 @@ iicorr = fix(lcorr ne 0.)
 iicorr[where(iicorr and lcorr lt 1.,/null)] = -1
 icorr = where(iicorr ne 0.,corrct)
 if (corrct gt 0) then lir[icorr] *= lcorr[icorr]
-e_lir[ilir] = reform(lir_sigm[1,ilir])
+e_lir[ilir] = reform(sig_lir[1,ilir])
 fir[ilir] = lir[ilir]/(4.*!const.pi*dl2[ilir])
-e_fir[ilir] = reform(fir_sigm[1,ilir])
+e_fir[ilir] = reform(sig_fir[1,ilir])
 ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), -9999 (no AGN)
-iest = where(iilir and lir_sigm[1,*] le 0,estct)
+iest = where(iilir and sig_lir[1,*] le 0,estct)
 if (estct gt 0) then begin 
     e_lir[iest] = lir[iest]*0.1
     e_fir[iest] = fir[iest]*0.1
@@ -155,11 +155,7 @@ for i = 0,nfield-1 do begin
         ;; K correct flux to rest-frame, f_kcorr = f_obs*(1+z)^(Γ-2)
         re = execute('fx_kcorr = FX'+xfield[i]+'[ivalid]*(1+z[ivalid])^(cat_gamma[i]-2.)')
         re = execute(lx[i]+'[ivalid] = 4.*!const.pi*dl2[ivalid]*fx_kcorr')
-        re = execute(e_lx[i]+'[ivalid] = '+lx[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/fx_kcorr)^2. + (red_sigm[1,ivalid]/z[ivalid])^2.)')
-        ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case; sanity check)
-        iest = where(iivalid and red_sigm[1,*] le 0.,estct)
-        if (estct gt 0) then re = execute(e_lx[i]+'[iest] = '+lx[i]+'[iest] * sqrt((E_FX'+xfield[i]+'[iest]/fx_kcorr)^2. + (zerr[iest]/z[iest])^2.)')
-        ;if (estct gt 0) then re = execute(e_lx[i]+'[iest] = '+lx[i]+'[iest]*0.1')
+        re = execute(e_lx[i]+'[ivalid] = '+lx[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/fx_kcorr)^2. + (zerr[1,ivalid]/z[ivalid])^2.)')
         re = execute(loglx[i]+'[ivalid] = alog10('+lx[i]+'[ivalid])>(-9999.)')
         re = execute(e_loglx[i]+'[ivalid] = '+e_lx[i]+'[ivalid]/(alog(10.)*'+lx[i]+'[ivalid])>(-9999.)')
     endif
@@ -201,11 +197,7 @@ for i = 0,nfield-1 do begin
         re = execute(logfxlim[i]+'[ivalid] = alog10('+fxlim[i]+'[ivalid])>(-9999.)')
         re = execute(e_logfxlim[i]+'[ivalid] = '+e_fxlim[i]+'[ivalid]/(alog(10)*'+fxlim[i]+'[ivalid])>(-9999.)')
         re = execute(lxlim[i]+'[ivalid] = 4.*!const.pi*dl2[ivalid]*'+fxlim[i]+'[ivalid]')
-        re = execute(e_lxlim[i]+'[ivalid] = '+lxlim[i]+'[ivalid] * sqrt(('+e_fxlim[i]+'[ivalid]/'+fxlim[i]+'[ivalid])^2. + (red_sigm[1,ivalid]/z[ivalid])^2.)')
-        ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case; sanity check)
-        iest = where(iivalid and red_sigm[1,*] le 0.,estct)
-        if (estct gt 0.) then re = execute(e_lxlim[i]+'[iest] = '+lxlim[i]+'[iest] * sqrt(('+e_fxlim[i]+'[iest]/'+fxlim[i]+'[iest])^2. + (zerr[iest]/z[iest])^2.)')
-        ;re = execute(e_lxlim[i]+'[iest] = '+lxlim[i]+'[iest]*0.1')
+        re = execute(e_lxlim[i]+'[ivalid] = '+lxlim[i]+'[ivalid] * sqrt(('+e_fxlim[i]+'[ivalid]/'+fxlim[i]+'[ivalid])^2. + (zerr[1,ivalid]/z[ivalid])^2.)')
         re = execute(loglxlim[i]+'[ivalid] = alog10('+lxlim[i]+'[ivalid])>(-9999.)')
         re = execute(e_loglxlim[i]+'[ivalid] = '+e_lxlim[i]+'[ivalid]/(alog(10)*'+lxlim[i]+'[ivalid])>(-9999.)')
     endif
@@ -234,9 +226,9 @@ for i = 0,nfield-1 do begin
         ;; start in linear space
         re = execute(lldet[i]+'[ivalid] = lx'+xfield[i]+'[ivalid]/(lxir[ivalid]*lxir_scat[ivalid])')
         ;; errors attributed to X-ray flux and IR flux
-        re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/FX'+xfield[i]+'[ivalid])^2. + (fir_sigm[1,ivalid]/fir_sigm[0,ivalid])^2.)')
+        re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/FX'+xfield[i]+'[ivalid])^2. + (sig_fir[1,ivalid]/sig_fir[0,ivalid])^2.)')
         ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case where AGN component; sanity check)
-        iest = where(iivalid and fir_sigm[1,*] le 0.,estct)
+        iest = where(iivalid and sig_fir[1,*] le 0.,estct)
         if (estct gt 0) then stop
         ;; convert to log space
         re = execute(e_lldet[i]+'[ivalid] /= (alog(10.)*'+lldet[i]+'[ivalid])>(-9999.)')

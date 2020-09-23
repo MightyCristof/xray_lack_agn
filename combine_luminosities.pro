@@ -37,6 +37,10 @@ lxlim = dblarr(nsrc)
 e_lxlim = dblarr(nsrc)
 loglxlim = dblarr(nsrc)-9999.
 e_loglxlim = dblarr(nsrc)-9999.
+fxlim = dblarr(nsrc)
+e_fxlim = dblarr(nsrc)
+logfxlim = dblarr(nsrc)-9999.
+e_logfxlim = dblarr(nsrc)-9999.
 ;; ratios
 lldet = dblarr(nsrc)-9999.
 e_lldet = dblarr(nsrc)-9999.
@@ -62,6 +66,10 @@ for i = 0,nfield-1 do begin
         re = execute('e_lxlim[inon_fill] = e_lxlim'+xfield[i]+'[inon_fill]')
         re = execute('loglxlim[inon_fill] = loglxlim'+xfield[i]+'[inon_fill]')
         re = execute('e_loglxlim[inon_fill] = e_loglxlim'+xfield[i]+'[inon_fill]')
+        re = execute('fxlim[inon_fill] = fxlim'+xfield[i]+'[inon_fill]')
+        re = execute('e_fxlim[inon_fill] = e_fxlim'+xfield[i]+'[inon_fill]')
+        re = execute('logfxlim[inon_fill] = logfxlim'+xfield[i]+'[inon_fill]')
+        re = execute('e_logfxlim[inon_fill] = e_logfxlim'+xfield[i]+'[inon_fill]')
         re = execute('llnon[inon_fill] = LLNON'+xfield[i]+'[inon_fill]')
         re = execute('e_llnon[inon_fill] = E_LLNON'+xfield[i]+'[inon_fill]')
     endif
@@ -70,6 +78,7 @@ endfor
 sav_vars = ['LX','E_LX','LOGLX','E_LOGLX', $
             'FX','E_FX','LOGFX','E_LOGFX', $
             'LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM', $
+            'FXLIM','E_FXLIM','LOGFXLIM','E_LOGFXLIM', $
             'LLDET','E_LLDET','LLNON','E_LLNON']
 sav_inds = []
 

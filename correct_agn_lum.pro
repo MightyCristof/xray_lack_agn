@@ -20,7 +20,7 @@ ntemps = n_elements(temps)
 coeff = in_fits[2:2+ntemps-1,*]
 ;; number of input sources and output correction factor
 nobj = n_elements(in_fits[0,*])
-lcorr = dblarr(nobj)
+lcorr = dblarr(nobj)-9999.
 ;; extract indices of sources to correct
 iagn = where(strmatch(temps,'AGN'),nagn)
 if (nagn eq 0) then return, 0.
@@ -43,6 +43,8 @@ objwav = rebin(obswav,n_elements(obswav),nind)
 objnu = (!const.c*1e6)/objwav
 tempwav = comp.wav#reform(1+z)
 tempnu = (!const.c*1e6)/tempwav
+;; target 6-micron wavelength in observed frame
+targ_wav = 6.*(1+z)
 
 ;; covert data from flux density [microjansky] to flux [erg/s/cm2]
 err *= 1e-29 * objnu         
@@ -82,9 +84,13 @@ iibelow = err_wise gt 0. and temp_flx lt flx_merr
 iabove = where(total(iiabove[2:3,*],1) eq 2,nabove)
 ibelow = where(total(iibelow[2:3,*],1) eq 2,nbelow)
 if (nabove gt 0) then $
-    for i = 0,nabove-1 do lcorr[ind[iabove[i]]] = interpol(flx_wise[*,iabove[i]],wav_wise,6.)/interpol(temp_flx[*,iabove[i]],wav_wise,6.)
+    for i = 0,nabove-1 do lcorr[ind[iabove[i]]] = interpol(flx_wise[*,iabove[i]],wav_wise,6.)-interpol(temp_flx[*,iabove[i]],wav_wise,targ_wav[iabove[i]])
 if (nbelow gt 0) then $
-    for i = 0,nbelow-1 do lcorr[ind[ibelow[i]]] = interpol(flx_wise[*,ibelow[i]],wav_wise,6.)/interpol(temp_flx[*,ibelow[i]],wav_wise,6.)
+    for i = 0,nbelow-1 do lcorr[ind[ibelow[i]]] = interpol(flx_wise[*,ibelow[i]],wav_wise,6.)-interpol(temp_flx[*,ibelow[i]],wav_wise,targ_wav[ibelow[i]])
+
+icorr = where(lcorr ne -9999.,corrct)
+if (corrct gt 0) then lcorr[icorr] = 10.^lcorr[icorr]
+lcorr[where(lcorr eq -9999.,/null)] = 0.
 
 return, lcorr
 

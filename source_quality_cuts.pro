@@ -40,6 +40,7 @@ iiirb = lir ge 42.
 iiirw = lir gt 0. and lir lt 42.
 ;; AGN fraction minimum of 70%
 iifagn = agnf15.obs ge 0.7
+iifagn = 
 
 ;; passes all SED quality cuts: chi-square, IR bright, and AGN fraction
 iiqual = iichi and iiirb and iifagn
