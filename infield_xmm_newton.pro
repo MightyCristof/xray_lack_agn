@@ -1,4 +1,4 @@
-PRO infield_xmm_newton
+PRO infield_xmm_newton, INF_ONLY = inf_only
 
 
 common _fits   
@@ -46,6 +46,11 @@ spherematch,ra,dec,mast_xmm.ra,mast_xmm.dec,fov_xmm/3600.,isamp,ifield,sep_cntr,
 sep_cntr *= 3600.       ;; convert to arcsec
 ;; tag main sample sources as "in field"
 iiinf_xmm[isamp] = 1
+
+if keyword_set(inf_only) then begin
+    save,iiinf_xmm,file='infield_xmm.sav'
+    return
+endif
 
 ;; loop over observations and choose closest field
 uind = isamp[uniq(isamp,sort(isamp))]
