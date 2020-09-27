@@ -19,7 +19,8 @@ for i = 0,n_elements(ii)-1 do begin
     printf,1, '\newcommand{\'+com+'}{'+commas(long(tot))+'\xspace}'
     printf,1, '\newcommand{\'+com+'tot}{'+string(rnd(totf,2),format="(d4.1)")+'\%\xspace}'
     printf,1, '\newcommand{\'+rcom+'}{'+commas(long(cum))+'\xspace}'
-    printf,1, '\newcommand{\'+com+'cum}{'+string(rnd(cumf,2),format="(d4.1)")+'\%\xspace}'
+    if (i eq n_elements(ii)-1) then printf,1, '\newcommand{\'+com+'cum}{$>$0.01\%\xspace}' else $
+                                    printf,1, '\newcommand{\'+com+'cum}{'+string(rnd(cumf,2),format="(d4.1)")+'\%\xspace}'
 endfor
 CLOSE,1
 
