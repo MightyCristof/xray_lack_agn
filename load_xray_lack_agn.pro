@@ -1,4 +1,5 @@
-PRO load_xray_lack_agn, subdir
+PRO load_xray_lack_agn, subdir, $
+                        PHOT = phot
 
 
 if (n_elements(subdir) eq 0) then cd,current=path else $
@@ -13,6 +14,7 @@ print, dir
 print, str
 print, ''
 
+if keyword_set(phot) then load_vars,'../data_prep/sdssXwise_initial.sav','_phot'
 load_vars,'fits.sav','_fits'
 load_vars,'resamp.sav','_resamp' 
 load_vars,'../data_prep/comp*.sav','_comp'
@@ -27,9 +29,9 @@ load_vars,path+'detections_wac.sav','_det_wac'
 load_vars,path+'xband_conversions.sav','_xconv'   
 load_vars,path+'catalog_flux_limits.sav','_fxlim' 
 load_vars,path+'src_luminosities.sav','_agnlum'     
-load_vars,path+'cleaned_cha.sav','_clean_cha'   
-load_vars,path+'cleaned_xmm.sav','_clean_xmm'   
-load_vars,path+'cleaned_nst.sav','_clean_nst'   
+;load_vars,path+'cleaned_cha.sav','_clean_cha'   
+;load_vars,path+'cleaned_xmm.sav','_clean_xmm'   
+;load_vars,path+'cleaned_nst.sav','_clean_nst'   
 load_vars,path+'quality_src.sav','_quality'  
 load_vars,path+'combined_lum.sav','_combined'
 load_vars,path+'nh_dist.sav','_nhdist'   

@@ -4,7 +4,7 @@ PRO infield_chandra, INF_ONLY = inf_only
 common _fits
 
 ;; Chandra Master
-mast_path = file_search('/Users/ccarroll/Research/surveys/Chandra/*master*.fits')
+mast_path = file_search('/Users/ccarroll/Research/surveys/Chandra/*master-????????.fits')
 ;; 3XMM-DR8 Serendip Catalog Per-Observation Source Table
 cat_path = '/Users/ccarroll/Research/surveys/Chandra/observation-source-2.fits'
 

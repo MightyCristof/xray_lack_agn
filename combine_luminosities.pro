@@ -14,9 +14,9 @@ common _det_wac
 common _xconv      
 common _fxlim    
 common _agnlum 
-common _clean_cha
-common _clean_xmm
-common _clean_nst
+;common _clean_cha
+;common _clean_xmm
+;common _clean_nst
 common _quality   
 
 
@@ -46,9 +46,14 @@ lldet = dblarr(nsrc)-9999.
 e_lldet = dblarr(nsrc)-9999.
 llnon = dblarr(nsrc)-9999.
 e_llnon = dblarr(nsrc)-9999.
+;; flag for which X-ray catalog filled the data
+xdet = strarr(nsrc)
+xnon = strarr(nsrc)
+xcat = ['CHA','XMM','NST']
 for i = 0,nfield-1 do begin
-    re = execute('idet_fill = where(lx eq 0. and IIFINAL_DET'+xfield[i]+',detct)')
+    re = execute('idet_fill = where(lx eq 0. and IIQUAL_DET'+xfield[i]+',detct)')
     if (detct gt 0.) then begin
+        xdet[idet_fill] = xcat[i]
         re = execute('lx[idet_fill] = lx'+xfield[i]+'[idet_fill]')
         re = execute('e_lx[idet_fill] = e_lx'+xfield[i]+'[idet_fill]')
         re = execute('loglx[idet_fill] = loglx'+xfield[i]+'[idet_fill]')
@@ -60,8 +65,9 @@ for i = 0,nfield-1 do begin
         re = execute('logfx[idet_fill] = LOGFX'+xfield[i]+'[idet_fill]')
         re = execute('e_logfx[idet_fill] = E_LOGFX'+xfield[i]+'[idet_fill]')
     endif
-    re = execute('inon_fill = where(lxlim eq 0. and iifinal_non and IIFINAL_NON'+xfield[i]+',nonct)')
+    re = execute('inon_fill = where(lxlim eq 0. and iiqual_non and IIQUAL_NON'+xfield[i]+',nonct)')
     if (nonct gt 0.) then begin
+        xnon[inon_fill] = xcat[i]
         re = execute('lxlim[inon_fill] = lxlim'+xfield[i]+'[inon_fill]')
         re = execute('e_lxlim[inon_fill] = e_lxlim'+xfield[i]+'[inon_fill]')
         re = execute('loglxlim[inon_fill] = loglxlim'+xfield[i]+'[inon_fill]')
@@ -79,7 +85,8 @@ sav_vars = ['LX','E_LX','LOGLX','E_LOGLX', $
             'FX','E_FX','LOGFX','E_LOGFX', $
             'LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM', $
             'FXLIM','E_FXLIM','LOGFXLIM','E_LOGFXLIM', $
-            'LLDET','E_LLDET','LLNON','E_LLNON']
+            'LLDET','E_LLDET','LLNON','E_LLNON', $
+            'xdet','xnon']
 sav_inds = []
 
 

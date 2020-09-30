@@ -46,10 +46,10 @@ dl2 = dlum(z,/sq)
 ;; AGN FRACTION -- 
 ;;----------------------------------------------------------------------------------------
 ;; calculate AGN fraction at 6- and 15-micron
-agnf6 = f_agn(6.,param,model=agnm6)
+agnf06 = f_agn(6.,param,model=agnm6)
 agnf15 = f_agn(15.,param,model=agnm15)
 
-sav_vars = ['EBV','E_EBV','ZSED','E_ZSED','NAGN','NGAL','AGNF6','AGNM6','AGNF15','AGNM15','DL2']
+sav_vars = ['EBV','E_EBV','ZSED','E_ZSED','NAGN','NGAL','AGNF06','AGNF15','AGNM15','DL2']
 sav_inds = ['IILIR']
 
 

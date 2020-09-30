@@ -4,11 +4,12 @@ PRO xray_lack_agn, subdir, $
                    CONVERT = convert, $
                    FXLIM = fxlim, $
                    AGNLUM = agnlum, $
-                   CLEAN = clean, $
+;                   CLEAN = clean, $
                    QUALITY = quality, $
                    COMBINE = combine, $
-                   NHDIST = nhdist
-
+                   NHDIST = nhdist, $
+                   SURV = surv
+                   
 
 ;; check for keyword commands
 nkeys = n_elements(infield) + $
@@ -19,7 +20,8 @@ nkeys = n_elements(infield) + $
         n_elements(clean) + $
         n_elements(quality) + $
         n_elements(combine) + $
-        n_elements(nhdist)
+        n_elements(nhdist) + $
+        n_elements(surv)
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; assume current directory unless specified
@@ -45,8 +47,7 @@ load_comp,'../data_prep/comp*.sav'
 ;; directory for output
 pushd,path
 
-;; re-sample sources only in X-ray fields
-;; match sample to WISE AGN Catalog
+;; flag X-ray footprints
 if keyword_set(infield) then begin
     infield_chandra
     infield_xmm_newton
@@ -58,7 +59,7 @@ load_vars,'infield_xmm.sav','_inf_xmm'
 load_vars,'infield_nst.sav','_inf_nst'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; flag X-ray detections
+;; flag X-ray detections and WISE AGN Catalog
 if keyword_set(detect) then begin
     detect_chandra
     detect_xmm
@@ -72,7 +73,7 @@ load_vars,'detections_nst.sav','_det_nst'
 load_vars,'detections_wac.sav','_det_wac'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; X-ray conversion to 2-10keV
+;; convert X-ray fluxes to 2-10keV
 if keyword_set(convert) then begin
     gmma = 1.8
     convert_xband,gmma
@@ -89,7 +90,7 @@ endif
 load_vars,'catalog_flux_limits.sav','_fxlim'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; calculate IR luminosities and X-ray conversions
+;; calculate IR and X-ray luminosities and luminosity ratios
 if keyword_set(agnlum) then begin
     agn_luminosities,/dered,rel=rel
     nkeys--
@@ -97,19 +98,19 @@ endif
 load_vars,'src_luminosities.sav','_agnlum'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; clean X-ray sources
-if keyword_set(clean) then begin
-    clean_source_chandra
-    clean_source_xmm
-    clean_source_nustar
-    nkeys--
-endif
-load_vars,'cleaned_cha.sav','_clean_cha'
-load_vars,'cleaned_xmm.sav','_clean_xmm'
-load_vars,'cleaned_nst.sav','_clean_nst'
-if (nkeys eq 0) then GOTO, NO_KEYS
+;;; clean X-ray sources
+;if keyword_set(clean) then begin
+;    clean_source_chandra
+;    clean_source_xmm
+;    clean_source_nustar
+;    nkeys--
+;endif
+;load_vars,'cleaned_cha.sav','_clean_cha'
+;load_vars,'cleaned_xmm.sav','_clean_xmm'
+;load_vars,'cleaned_nst.sav','_clean_nst'
+;if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; pass quality control
+;; pass quality cuts for analysis set
 if keyword_set(quality) then begin
     source_quality_cuts
     nkeys--
@@ -117,7 +118,7 @@ endif
 load_vars,'quality_src.sav','_quality'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; combine values
+;; combine values by source
 if keyword_set(combine) then begin
     combine_luminosities
     nkeys--
@@ -125,7 +126,7 @@ endif
 load_vars,'combined_lum.sav','_combined'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;; raw NH distribution
+;; estimate NH distribution
 if keyword_set(nhdist) then begin
     compute_nh_distribution
     nkeys--
@@ -133,8 +134,16 @@ endif
 load_vars,'nh_dist.sav','_nhdist'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
+;; run survival analysis on analysis set
+if keyword_set(surv) then begin
+    surv_analysis;,/asurv
+    nkeys--        
+endif
+
+
 NO_KEYS:
 popd
+
 
 
 END

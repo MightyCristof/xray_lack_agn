@@ -1,7 +1,8 @@
 PRO plot_xray_lack_agn, PHOT_SPEC = phot_spec, $
+                        ZHIST = zhist, $
+                        FLUX_LIMIT = flux_limit, $
                         SEDS = seds, $
                         LX_LIR = lx_lir, $
-                        FLUX_LIMIT = flux_limit, $
                         LUM_RATIO = lum_ratio, $
                         NH_DIST = nh_dist, $
                         HIDE = hide, $
@@ -24,9 +25,9 @@ common _det_wac
 common _xconv   
 common _fxlim 
 common _agnlum 
-common _clean_cha
-common _clean_xmm
-common _clean_nst
+;common _clean_cha
+;common _clean_xmm
+;common _clean_nst
 common _quality  
 common _combined
 common _nhdist
@@ -36,7 +37,7 @@ if keyword_set(low_res) then res = 100 else res = 600
 
 file_mkdir,'figures'
 ;;----------------------------------------------------------------------------------------
-;; SEDs
+;; z-PHOT vs z-SPEC
 ;;----------------------------------------------------------------------------------------
 if keyword_set(phot_spec) then begin
     print, '    PREPARING REDSHIFT COMPARISON'
@@ -57,45 +58,43 @@ if keyword_set(phot_spec) then begin
         ;; SDSS DR12
         dir_sdss = '/Users/ccarroll/Research/surveys/SDSS/DR14/sdss-dr14-cat-part'+['37','38']+'.fits.gz'
         sdss = [mrdfits(dir_sdss[0],1),mrdfits(dir_sdss[1],1)]
-        ;; quality sources
-        ;cosm = cosm[where(cosm.zpec gt 0.,/null)] 
-        ages = ages[where((ages.gal eq 1 or ages.qso eq 1 or ages.agn eq 1) and ages.z1 gt 0. and ages.s_n1 gt 3.,/null)]
-        sdss = sdss[where(sdss.zp gt 0. and sdss.zp le 0.6,/null)]
-        sdss = sdss[where(sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3,/null)]
-    
+        ;; has photo z
+        izp = where(sdss.zp ne -9999.,zplen)
+        if (zplen gt 0) then sdss = sdss[izp]
         ;; matched to SDSS DR12
         ;spherematch,sdss.ra_sdss,sdss.dec_sdss,cosm.ra,cosm.dec,6./3600.,isdss,icosm,sep
         ;cosm = cosm[icosm]
         ;sdss = sdss[isdss]
-        spherematch,sdss.ra_sdss,sdss.dec_sdss,ages._raj2000,ages._dej2000,6./3600.,isdss,iages,sep_sdss
+        spherematch,sdss.ra_sdss,sdss.dec_sdss,ages._raj2000,ages._dej2000,3./3600.,isdss,iages,sep
         ages = ages[iages]
         sdss = sdss[isdss]
-        sep_sdss *= 3600.
+        sep *= 3600.
         
-        isep = where(sep_sdss lt 1.,ct)
+        isep = where(sep lt 1.,ct)
         if (ct gt 0.) then begin
             ages = ages[isep]
             sdss = sdss[isep]
-            sep_sdss = sep_sdss[isep]
+            sep  = sep[isep]
         endif
-        
-        save,ages,sdss,sep_sdss,/compress,file='phot_spec_srcs.sav'
+        save,ages,sdss,sep,/compress,file='phot_spec_srcs.sav'
     endif else restore, file[ifile]
+        
+    ;; quality sources
+    ;cosm = cosm[where(cosm.zpec gt 0.,/null)]
+    iizages = (ages.gal eq 1 or ages.qso eq 1 or ages.agn eq 1) and ages.s_n1
+    iizpec1 = sdss.photoerrorclass eq 1
+    iizpec3 = sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3
     
-    ;zs = cosm.zpec
-    isep = where(sep_sdss lt 1.0,ct)
-    if (ct gt 0.) then begin
-        ages = ages[isep]
-        sdss = sdss[isep]
-        sep_sdss = sep_sdss[isep]
-    endif    
+    sdss = sdss[where(sdss.zp gt 0. and sdss.zp le 0.6,/null)]
+    sdss = sdss[where(sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3,/null)]
+    
     zs = ages.z1
     zp = sdss.zp
     ;; all matches
     delz = (zp-zs)/(1+zs)
     mad = medabsdev(delz)
-    ;; matches in final sample
-    ifin = where(iifinal and strmatch(ztype,'ZP'),/null)
+    ;; matches in quality analysis sample
+    ifin = where(iiqual and strmatch(ztype,'ZP'),/null)
     ra_fin = ra[ifin]
     dec_fin = dec[ifin]
     zp_fin = z[ifin]
@@ -182,9 +181,13 @@ if keyword_set(phot_spec) then begin
     print, 'NUM. MISSES: ' + strtrim(noff,2)
     print, 'NUM. SAMPLE:   ' + strtrim(n_elements(zs_in),2)   
     print, 'SIGMA MAD:  ' + strtrim(mad,2)
-    print, 'SIGMA MAD FINAL: ' + strtrim(madfin,2)
+    print, 'SIGMA MAD QUAL: ' + strtrim(madfin,2)
     
-    save,mad,madfin,file='phot_spec_errs.sav'
+    nages = n_elements(zs)
+    nqages = n_elements(zs_in)
+    nagesoff = noff
+    
+    save,nages,nqages,nagesoff,mad,madfin,file='phot_spec_errs.sav'
 
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
@@ -194,6 +197,142 @@ if keyword_set(phot_spec) then begin
 endif
 
 
+
+;;----------------------------------------------------------------------------------------
+;; z HIST
+;;----------------------------------------------------------------------------------------
+if keyword_set(flux_limit) then begin
+
+    izs = where(strmatch(ztype,'ZS*'))
+    izp = where(~strmatch(ztype,'ZS*'))
+    
+    yz = [0.,histogram(z,bin=0.02d,location=xz,min=0.,max=1.),0.]
+    yzs = [0.,histogram(z[izs],bin=0.02d,location=xzs,min=0.,max=1.),0.]
+    yzp = [0.,histogram(z[izp],bin=0.02d,location=xzp,min=0.,max=1.),0.]
+    xz = [-0.02d,xz,1.02d]+0.01d
+    xzs = [-0.02d,xzs,1.02d]+0.01d
+    xzp = [-0.02d,xzp,1.02d]+0.01d
+
+    
+    
+    col = [[27,158,119],[117,112,179]]
+    
+    
+    e = {xtitle:'!8z!7',ytitle:'Frequency', $
+         font_size:14,font_name:'Times', $
+         xra:[-0.02,1.02], $
+         stairstep:1,thick:2, $
+         fill_background:1,fill_transparency:75}
+    pz = plot(xz,yz,_extra=e,linestyle='-')
+    pzp = plot(xzp,yzp,_extra=e,col=col[*,0],fill_color=col[*,0],linestyle='__',/ov,name='!7z!8$_{phot}$')    
+    pzs = plot(xzs,yzs,_extra=e,col=col[*,1],fill_color=col[*,1],linestyle='-',/ov,name='!7z!8$_{spec}$')   
+    l = legend(target=[pzs,pzp],position=[0.9,2000],/data,/auto_text_color,sample_width=0.1,horizontal_spacing=0.06,font_name='Times',font_size=16)
+    
+    
+    
+    
+endif
+
+
+
+;;----------------------------------------------------------------------------------------
+;; Flux Limit
+;;----------------------------------------------------------------------------------------
+if keyword_set(flux_limit) then begin
+    multi_sn = 1
+    print, '    PREPARING PAPER FLUX LIMIT'
+    dim = [1320,510]
+    src_pos = [[80,75,465,455],[465,75,850,455],[850,75,1235,455]]
+    axis_src = 0
+    which_axis = 1
+    leg_src = nfield-1
+    leg_pos = [0.755,0.78]
+    xpos = [0.5,0.035]
+    ypos = [0.025,0.5]
+    
+    e = {yra:[-15.5,-9.], $
+         xlog:1,ylog:0, $
+         xtitle:'$exposure time [s]$',ytitle:'$log  !8F!7_{2-10 keV} [erg s^{-1}cm^{-2}]$', $
+         font_name:'Times',font_size:14, $ $
+         buffer:0}
+    if keyword_set(hide) then e.buffer = 1
+;    xra = [[8e2,max(texp_cha)],[8e2,max(texp_xmm)],[2e3,max(texp_nst)>3e5]]
+    xra = [[8e2,3e5],[8e2,3e5],[2e3,3e5]]
+    
+    cat = ['Chandra','XMM-Newton','NuSTAR']
+    
+    for i = 0,nfield-1 do begin
+        if (i eq 0) then current = 0 else current = 1
+        re = execute('p = plot(CAT_EXP'+xfield[i]+',alog10(CAT_FLX'+xfield[i]+'),_extra=e,xra=xra[*,i],dimension=dim,position=src_pos[*,i],/device,current=current,/nodata)')
+        if (i ne 0) then p.axes[1].showtext=0
+        if (i ne 1) then p.xtitle = ''
+        pcat_dark = plot([1e-5,1e-5],[1e5,1e6],'s',col='dark grey',sym_filled=1,sym_size=0.5,transparency=75,/ov,name='X-ray Catalog(s)')
+        
+        ;; average error bar
+        xpt = [1.5e3,1.6e3,3.63e3]
+        ypt = [-14.7]
+        perr = plot([xpt[i]],ypt,'s',sym_size=4,sym_thick=2,/ov)
+        re = execute('yer = [median(CAT_ERR'+xfield[i]+'/(alog(10.)*CAT_FLX'+xfield[i]+'))]')
+        perr = errorplot([xpt[i]],ypt,yer,errorbar_capsize=0.1,linestyle='',/ov)
+        perr = plot([xpt[i]],ypt,'S',col='white',sym_size=1.5,sym_filled=1,/ov)
+        perr = plot([xpt[i]],ypt,'S',col='dodger blue',sym_size=1.5,sym_filled=0,/ov)
+        ;if (i eq 2) then terr = text(xpt[i]*1.4,ypt,target=perr,/data,'$Median \sigma_{log !8F!7}$',vertical_alignment=0.5,font_size=12,font_name='Times')
+        ;if (i ne axis_src) then p.axes[which_axis].showtext = 0
+        t = text(0.06,0.88,cat[i],target=p,/RELATIVE,font_size=16,font_style='Bold italic',alignment=0.,font_name='Times')
+
+        re = execute('ncat = n_elements(CAT_EXP'+xfield[i]+')')
+        ;if (ncat gt 1e5) then re = execute('irand = round(randomu(seed,n_elements(CAT_EXP'+xfield[i]+')/10)*n_elements(CAT_EXP'+xfield[i]+'))') else $
+                              re = execute('irand = lindgen(n_elements(CAT_EXP'+xfield[i]+'))')
+        re = execute('pcat_lite = plot(CAT_EXP'+xfield[i]+'[irand],alog10(CAT_FLX'+xfield[i]+'[irand]),"s",col="light grey",sym_filled=1,sym_size=0.5,transparency=85,/ov)')
+        ; plot open symbols first (makes for a cleaner plot)
+        re = execute('pnon = plot(TEXP'+xfield[i]+'[where(iiqual_non'+xfield[i]+')],logfxir[where(iiqual_non'+xfield[i]+')],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name="X-ray non-det. [$!8F!7_{X,expected}$]")')
+        ;; off plot range
+        ;re = execute('ioff = where(iiqual_non'+xfield[i]+' and TEXP'+xfield[i]+' gt xra[1,i],noff)')
+        ;if (noff gt 0) then pwoff = arrow(transpose([[make_array(noff,value=xra[1,i]*0.75)],[make_array(noff,value=xra[1,i])]]),transpose([[logfxir[ioff]],[logfxir[ioff]]]),color='orange',/ov,/data,thick=2,head_size=0.5,target=pnon)
+        ;; stretch X-ray flux limit for plot
+        re = execute('lxr = alog10([min(EXP'+xfield[i]+'[where(EXP'+xfield[i]+' gt 0.)])<min(TEXP'+xfield[i]+'[where(TEXP'+xfield[i]+' gt 0.)]),max(EXP'+xfield[i]+'[where(EXP'+xfield[i]+' gt 0.)])>max(TEXP'+xfield[i]+'[where(TEXP'+xfield[i]+' gt 0.)])])')
+        xx = [lxr[0]:lxr[1]:diff(minmax(lxr))/1000.]
+        xx_str = '['+strtrim(indgen(degr[i]+1),2)+']*xx^'+strtrim(indgen(degr[i]+1),2)+'.'
+        re = execute('fxlim = FXLIM_CS'+xfield[i])
+        re = execute('yy = '+strjoin(+'fxlim'+xx_str,' + '))
+        pxlim = plot(10.^xx,yy,'--r',thick=2,/ov,name="X-ray flux limit")
+        if keyword_set(multi_sn) then begin
+            re = execute('ilim = where(CAT_EXP5'+xfield[i]+' ge min(10.^xx) and CAT_EXP5'+xfield[i]+' le max(10.^xx))')
+            re = execute('p = plot(CAT_EXP5'+xfield[i]+'[ilim],alog10(CAT_LIM5'+xfield[i]+'[ilim]),"--",thick=2,/ov)')
+            if (i eq nfield-1) then begin
+                snt = text(2.5e3,-12.3,'$!8S/N!7 \geq  5.0$',target=p,/DATA,font_size=12,font_name='Times')
+                snt = text(2.5e3,-13.1,'$!8S/N!7 \geq  3.0$',target=p,/DATA,font_size=12,font_name='Times',col='red')
+            endif
+        endif        
+        
+        ;; ensure axes range
+        p.xra = xra[*,i]
+        
+        re = execute('pdet = plot(EXP'+xfield[i]+'[where(iiqual_det'+xfield[i]+')],alog10(FX'+xfield[i]+'[where(iiqual_det'+xfield[i]+')]),"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name="X-ray detected [$!8F!7_{X,observed}$]")')
+        re = execute('pdo = plot(EXP'+xfield[i]+'[where(iiqual_det'+xfield[i]+')],alog10(FX'+xfield[i]+'[where(iiqual_det'+xfield[i]+')]),"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)')
+        if (i eq nfield-1) then begin
+            re = execute('pright = plot(TEXP'+xfield[i]+'[where(iiqual_non'+xfield[i]+')],logfxir[where(iiqual_non'+xfield[i]+')],/nodata,/current,position=src_pos[*,i],axis_style=0)')
+            aright = axis('y',target=pnon,location=[pnon.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8F!7_{2-10 keV}(expected) [erg s^{-1}cm^{-2}]$',tickfont_name='Times',tickfont_size=14)
+        endif
+        
+        if (i eq leg_src) then l = legend(target=[pdet,pnon,pcat_dark],position=leg_pos,/normal,/auto_text_color,sample_width=0,horizontal_spacing=0.06,vertical_alignment=0.5,horizontal_alignment=0)
+    endfor
+    
+    ;xt = text(xpos[0],xpos[1],'$exposure time [s]$',alignment=0.5,font_size=14,font_name='Times')
+    ;yt = text(ypos[0],ypos[1],'$log  !8F!7_{2-10 keV} [erg s^{-1}cm^{-2}]$',orientation=90,alignment=0.5,font_size=14,font_name='Times')    
+    
+    if keyword_set(sav) then begin
+        print, '    SAVING PLOT'
+        if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/fx_limits.eps',/BITMAP else $
+                                                     p.save,'figures/fx_limits.png',resolution=res
+    endif
+endif
+
+
+
+;;----------------------------------------------------------------------------------------
+;; SEDs
+;;----------------------------------------------------------------------------------------
 if keyword_set(seds) then begin
     print, '    PREPARING PAPER SED'
     igal = ['1237652900229415056','1237655370892116222','1237651272441725119']
@@ -202,8 +341,8 @@ if keyword_set(seds) then begin
     nplt = n_elements(ids)
     inds = []
     for i = 0,nplt-1 do inds = [inds,where(objid eq ids[i])]
-    print, 'DETECT:  ', iifinal_det[inds]
-    print, 'NON-DET: ', iifinal_non[inds]
+    print, 'DETECT:  ', iiqual_det[inds]
+    print, 'NON-DET: ', iiqual_non[inds]
     print, 'WISE AGN:', iidet_wac[inds]
     ;; determine which template components
     components = tag_names(comp)
@@ -336,19 +475,19 @@ if keyword_set(lx_lir) then begin
     yrel_fiore[where(~iifiore)] = 43.574 + 0.72*(xrel_fiore[where(~iifiore)] - 44.2)
     
     ;lx = dblarr(nsrc)
-    ;lx[where(lx eq 0. and iifinal_det_cha)] = lx_cha[where(lx eq 0. and iifinal_det_cha)]
-    ;lx[where(lx eq 0. and iifinal_det_xmm)] = lx_xmm[where(lx eq 0. and iifinal_det_xmm)]
-    ;lx[where(lx eq 0. and iifinal_det_nst)] = lx_nst[where(lx eq 0. and iifinal_det_nst)]
+    ;lx[where(lx eq 0. and iiqual_det_cha)] = lx_cha[where(lx eq 0. and iiqual_det_cha)]
+    ;lx[where(lx eq 0. and iiqual_det_xmm)] = lx_xmm[where(lx eq 0. and iiqual_det_xmm)]
+    ;lx[where(lx eq 0. and iiqual_det_nst)] = lx_nst[where(lx eq 0. and iiqual_det_nst)]
 
-    iqso1 = where(iifinal_det and ebv le 0.15)
-    iqso2 = where(iifinal_det and ebv gt 0.15)
+    iqso1 = where(iiqual_det and ebv le 0.15)
+    iqso2 = where(iiqual_det and ebv gt 0.15)
     
     ;; test (1+z) correction
-    loglirz = alog10((10.^loglir)/(1+z))
-    loglirz[where(loglir eq -9999)] = -9999
+    ;loglirz = alog10((10.^loglir)/(1+z))
+    ;loglirz[where(loglir eq -9999)] = -9999
     ;loglir = loglirz
 
-    binsz = 0.1
+    binsz = 0.15
     hist1 = hist_2d(loglir[iqso1],loglx[iqso1],bin1=binsz,min1=41.,max1=47.5,bin2=binsz,min2=41.,max2=46.5)
     hist2 = hist_2d(loglir[iqso2],loglx[iqso2],bin1=binsz,min1=41.,max1=47.5,bin2=binsz,min2=41.,max2=46.5)
     ind1 = array_indices(hist1,where(hist1 eq max(hist1)))
@@ -367,7 +506,7 @@ if keyword_set(lx_lir) then begin
     ;; [0,158,115]  [204,121,167]
     im1 = image('chen17_bw1.png',transparency=50,dimension=[640,877],position=[80,440,587,810],buffer=buff,/device)
     pnodata = plot(xrel_chen,yrel_chen,_extra=e,/current,position=im1.position)
-    cqso1 = contour(hist1,xlum,ylum,c_thick=4,rgb_table=colortable(49,/reverse),/fill,/ov,c_label_show=0,name='$!8E(B-V)!7 \leq  0.15$')
+    cqso1 = contour(hist1,xlum,ylum,c_thick=4,rgb_table=colortable(49,/reverse),/fill,/ov,c_label_show=0,transparency=0,name='$!8E(B-V)!7 \leq  0.15$')
     prel_chen = plot(xrel_chen,yrel_chen,linestyle=rel_lin[0],col=rel_col[*,0],thick=4,_extra=e,/ov,position=im1.position,name='Chen+17')
     prel_fiore = plot(xrel_fiore,yrel_fiore,linestyle=rel_lin[1],col=rel_col[*,1],thick=4,/ov,name='Fiore+09')
     chent = text(41.15,42.3,/data,target=prel_chen,'Chen+17',col=rel_col[*,0],font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
@@ -378,7 +517,7 @@ if keyword_set(lx_lir) then begin
     ;p = plot(xlum[ind1[0,*]],ylum[ind1[1,*]],'X',sym_size=1.5,sym_thick=1,/sym_filled,col=[0,158,115],/ov)
     im2 = image('chen17_bw2.png',transparency=50,/current,position=[80,75,587,445],/device)
     pnodata = plot(xrel_chen,yrel_chen,_extra=e,/current,position=im2.position)    
-    cqso2 = contour(hist2,xlum,ylum,c_thick=4,rgb_table=colortable(62,/reverse),/fill,/ov,c_label_show=0,name='$!8E(B-V)!7 > 0.15$')
+    cqso2 = contour(hist2,xlum,ylum,c_thick=4,rgb_table=colortable(62,/reverse),/fill,/ov,c_label_show=0,transparency=0,name='$!8E(B-V)!7 > 0.15$')
     prel_chen = plot(xrel_chen,yrel_chen,'-',col=rel_col[*,0],thick=4,_extra=e,/ov,position=im2.position,name='Chen+17')    
     prel_fiore = plot(xrel_fiore,yrel_fiore,'-',col=rel_col[*,1],thick=4,/ov,name='Fiore+09')
     ;p = plot([median(xlum[ind2[0,*]])],[median(ylum[ind2[1,*]])],'o',col='black',sym_size=1.5,/ov)
@@ -401,98 +540,6 @@ if keyword_set(lx_lir) then begin
     endif
 endif
 
-
-
-;;----------------------------------------------------------------------------------------
-;; Flux Limit
-;;----------------------------------------------------------------------------------------
-if keyword_set(flux_limit) then begin
-    multi_sn = 1
-    print, '    PREPARING PAPER FLUX LIMIT'
-    dim = [1320,510]
-    src_pos = [[80,75,465,455],[465,75,850,455],[850,75,1235,455]]
-    axis_src = 0
-    which_axis = 1
-    leg_src = nfield-1
-    leg_pos = [0.675,0.78]
-    xpos = [0.5,0.035]
-    ypos = [0.025,0.5]
-    
-    e = {yra:[-15.5,-9.], $
-         xlog:1,ylog:0, $
-         xtitle:'$exposure time [s]$',ytitle:'$log  !8F!7_{2-10 keV} [erg s^{-1}cm^{-2}]$', $
-         font_name:'Times',font_size:14, $ $
-         buffer:0}
-    if keyword_set(hide) then e.buffer = 1
-;    xra = [[8e2,max(texp_cha)],[8e2,max(texp_xmm)],[2e3,max(texp_nst)>3e5]]
-    xra = [[8e2,3e5],[8e2,3e5],[2e3,3e5]]
-    
-    cat = ['   Chandra','XMM-Newton','    NuSTAR']
-    
-    for i = 0,nfield-1 do begin
-        if (i eq 0) then current = 0 else current = 1
-        re = execute('p = plot(CAT_EXP'+xfield[i]+',alog10(CAT_FLX'+xfield[i]+'),_extra=e,xra=xra[*,i],dimension=dim,position=src_pos[*,i],/device,current=current,/nodata)')
-        if (i ne 0) then p.axes[1].showtext=0
-        if (i ne 1) then p.xtitle = ''
-        pcat_dark = plot([1e-5,1e-5],[1e5,1e6],'s',col='dark grey',sym_filled=1,sym_size=0.5,transparency=75,/ov,name='X-ray Catalog(s)')
-        re = execute('ncat = n_elements(CAT_EXP'+xfield[i]+')')
-        ;if (ncat gt 1e5) then re = execute('irand = round(randomu(seed,n_elements(CAT_EXP'+xfield[i]+')/10)*n_elements(CAT_EXP'+xfield[i]+'))') else $
-                              re = execute('irand = lindgen(n_elements(CAT_EXP'+xfield[i]+'))')
-        re = execute('pcat_lite = plot(CAT_EXP'+xfield[i]+'[irand],alog10(CAT_FLX'+xfield[i]+'[irand]),"s",col="light grey",sym_filled=1,sym_size=0.5,transparency=85,/ov)')
-        ; plot open symbols first (makes for a cleaner plot)
-        re = execute('pnon = plot(TEXP'+xfield[i]+'[where(iifinal_non'+xfield[i]+')],logfxir[where(iifinal_non'+xfield[i]+')],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name="X-ray non-det. [$!8F!7_{X,expected}$]")')
-        ;; off plot range
-        ;re = execute('ioff = where(iifinal_non'+xfield[i]+' and TEXP'+xfield[i]+' gt xra[1,i],noff)')
-        ;if (noff gt 0) then pwoff = arrow(transpose([[make_array(noff,value=xra[1,i]*0.75)],[make_array(noff,value=xra[1,i])]]),transpose([[logfxir[ioff]],[logfxir[ioff]]]),color='orange',/ov,/data,thick=2,head_size=0.5,target=pnon)
-        ;; stretch X-ray flux limit for plot
-        re = execute('lxr = alog10([min(EXP'+xfield[i]+'[where(EXP'+xfield[i]+' gt 0.)])<min(TEXP'+xfield[i]+'[where(TEXP'+xfield[i]+' gt 0.)]),max(EXP'+xfield[i]+'[where(EXP'+xfield[i]+' gt 0.)])>max(TEXP'+xfield[i]+'[where(TEXP'+xfield[i]+' gt 0.)])])')
-        xx = [lxr[0]:lxr[1]:diff(minmax(lxr))/1000.]
-        xx_str = '['+strtrim(indgen(degr[i]+1),2)+']*xx^'+strtrim(indgen(degr[i]+1),2)+'.'
-        re = execute('fxlim = FXLIM_CS'+xfield[i])
-        re = execute('yy = '+strjoin(+'fxlim'+xx_str,' + '))
-        pxlim = plot(10.^xx,yy,'--r',thick=2,/ov,name="X-ray flux limit")
-        if keyword_set(multi_sn) then begin
-            re = execute('ilim = where(CAT_EXP5'+xfield[i]+' ge min(10.^xx) and CAT_EXP5'+xfield[i]+' le max(10.^xx))')
-            re = execute('p = plot(CAT_EXP5'+xfield[i]+'[ilim],alog10(CAT_LIM5'+xfield[i]+'[ilim]),"--",thick=2,/ov)')
-            if (i eq nfield-1) then begin
-                snt = text(2.5e3,-12.3,'$!8S/N!7 \geq  5.0$',target=p,/DATA,font_size=12,font_name='Times')
-                snt = text(2.5e3,-13.1,'$!8S/N!7 \geq  3.0$',target=p,/DATA,font_size=12,font_name='Times',col='red')
-            endif
-        endif        
-        
-        ;; ensure axes range
-        p.xra = xra[*,i]
-        
-        re = execute('pdet = plot(EXP'+xfield[i]+'[where(iifinal_det'+xfield[i]+')],alog10(FX'+xfield[i]+'[where(iifinal_det'+xfield[i]+')]),"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name="X-ray detected [$!8F!7_{X,observed}$]")')
-        re = execute('pdo = plot(EXP'+xfield[i]+'[where(iifinal_det'+xfield[i]+')],alog10(FX'+xfield[i]+'[where(iifinal_det'+xfield[i]+')]),"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)')
-        if (i eq nfield-1) then begin
-            re = execute('pright = plot(TEXP'+xfield[i]+'[where(iifinal_non'+xfield[i]+')],logfxir[where(iifinal_non'+xfield[i]+')],/nodata,/current,position=src_pos[*,i],axis_style=0)')
-            aright = axis('y',target=pnon,location=[pnon.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8F!7_{2-10 keV}(expected) [erg s^{-1}cm^{-2}]$',tickfont_name='Times',tickfont_size=14)
-        endif
-        
-        ;; average error bar
-        xpt = [1.5e3,1.6e3,3.6e3]
-        ypt = [-14.7]
-        perr = plot([xpt[i]],ypt,'s',sym_size=4,sym_thick=2,/ov)
-        re = execute('yer = [median(CAT_ERR'+xfield[i]+'/(alog(10.)*CAT_FLX'+xfield[i]+'))]')
-        perr = errorplot([xpt[i]],ypt,yer,errorbar_capsize=0.1,linestyle='',/ov)
-        perr = plot([xpt[i]],ypt,'S',col='white',sym_size=1.5,sym_filled=1,/ov)
-        perr = plot([xpt[i]],ypt,'S',col='dodger blue',sym_size=1.5,sym_filled=0,/ov)
-        if (i eq 2) then terr = text(xpt[i]*1.4,ypt,target=perr,/data,'$Median \sigma_{log !8F!7}$',vertical_alignment=0.5,font_size=12,font_name='Times')
-        ;if (i ne axis_src) then p.axes[which_axis].showtext = 0
-        t = text(0.94,0.88,cat[i],target=p,/RELATIVE,font_size=16,font_style='Bold italic',alignment=1.,font_name='Times')
-        if (i eq leg_src) then l = legend(target=[pdet,pnon,pcat_dark],position=leg_pos,/normal,/auto_text_color,sample_width=0,horizontal_spacing=0.06,vertical_alignment=0.5,horizontal_alignment=0)
-    endfor
-    
-    ;xt = text(xpos[0],xpos[1],'$exposure time [s]$',alignment=0.5,font_size=14,font_name='Times')
-    ;yt = text(ypos[0],ypos[1],'$log  !8F!7_{2-10 keV} [erg s^{-1}cm^{-2}]$',orientation=90,alignment=0.5,font_size=14,font_name='Times')    
-    
-    if keyword_set(sav) then begin
-        print, '    SAVING PLOT'
-        if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/fx_limits.eps',/BITMAP else $
-                                                     p.save,'figures/fx_limits.png',resolution=res
-    endif
-endif
 
 
 
@@ -528,40 +575,41 @@ if keyword_set(lum_ratio) then begin
     ll_bound = rl2nh(nh_bound,model=model,/lum_out)
 
     ;; WISE AGN Catalog sources
-    pw = plot(logebv[where(iifinal_non)],llnon[where(iifinal_non)],_extra=ell,position=[85,445,595,825],/device,/nodata,ytickvalues=[-3.0,-2.0,-1.0,0.0,1.0],ytickformat='(d4.1)',ytitle='$log  !8L!7_X / !8L!7_X(!8L!7_{IR})  (2$-$10 keV)$')
+    pw = plot(logebv[where(iiqual_non)],llnon[where(iiqual_non)],_extra=ell,position=[85,445,595,825],/device,/nodata,ytickvalues=[-3.0,-2.0,-1.0,0.0,1.0],ytickformat='(d4.1)',ytitle='$log  !8L!7_X / !8L!7_X(!8L!7_{IR})  (2$-$10 keV)$')
     ;; unobscured shading
-    pw = plot(ell.xra,[1,1]*ell.yra[1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=50,/ov)
+    pw = plot(ell.xra,[1,1]*ell.yra[1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=0,/ov)
     ;; CT shading
-    pw = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    pw = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=00,/ov)
     ;; plot data
-    pwllnon = arrow(transpose([[logebv[where(iifinal_non and iidet_wac)]],[logebv[where(iifinal_non and iidet_wac)]]]),transpose([[llnon[where(iifinal_non and iidet_wac)]],[llnon[where(iifinal_non and iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
-    ;pwllnon = plot(logebv[where(iifinal_non and iidet_wac)],llnon[where(iifinal_non and iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",transparency=50,/ov,_extra=e,name=" X-ray non-det.",/nodata)    
-    pwlldet = plot(logebv[where(iifinal_det and iidet_wac)],lldet[where(iifinal_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
-    p = plot(logebv[where(iifinal_det and iidet_wac)],lldet[where(iifinal_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
+    pwllnon = arrow(transpose([[logebv[where(iiqual_non and iidet_wac)]],[logebv[where(iiqual_non and iidet_wac)]]]),transpose([[llnon[where(iiqual_non and iidet_wac)]],[llnon[where(iiqual_non and iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
+    ;pwllnon = plot(logebv[where(iiqual_non and iidet_wac)],llnon[where(iiqual_non and iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",transparency=50,/ov,_extra=e,name=" X-ray non-det.",/nodata)    
+    pwlldet = plot(logebv[where(iiqual_det and iidet_wac)],lldet[where(iiqual_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
+    p = plot(logebv[where(iiqual_det and iidet_wac)],lldet[where(iiqual_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
     ;; non-detections off plot range
-    ;ioff = where(iifinal_non and iidet_wac and llnon ge ell.yra[1],noff)
+    ;ioff = where(iiqual_non and iidet_wac and llnon ge ell.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_non and iidet_wac and llnon le ell.yra[0],noff)
+    ;ioff = where(iiqual_non and iidet_wac and llnon le ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;;; detections off plot range
-    ;ioff = where(iifinal_det and iidet_wac and lldet gt ell.yra[1],noff)
+    ;ioff = where(iiqual_det and iidet_wac and lldet gt ell.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_det and iidet_wac and lldet lt ell.yra[0],noff)
+    ;ioff = where(iiqual_det and iidet_wac and lldet lt ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; median error bars
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iifinal_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iiqual_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.] ,"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text
-    t = text(ell.xra[0]+0.22,0.42,'!16WISE!15 AGN',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
-    t = text(ell.xra[0]+0.22,0.17,'sources',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
-    t = text(ell.xra[1]-0.2,ll_bound[0]+0.15,'Unobscured',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
-    t = text(ell.xra[1]-0.2,ll_bound[1]-0.3,'Compton',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
-    t = text(ell.xra[1]-0.2,ll_bound[1]-0.55,'thick',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(ell.xra[0]+0.22,0.50,'!16WISE!15 AGN',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[0]+0.22,0.25,'sources',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[1]-0.2,ll_bound[0]+0.14,'Unobscured',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(ell.xra[1]-0.2,ll_bound[1]-0.25,'Compton',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(ell.xra[1]-0.2,ll_bound[1]-0.45,'thick',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
+    
     ;; NH lines + text
     t = text(ell.xra[0]+0.2,ell.yra[0]+0.4,'$!8N!7_H  [cm^{-2}]$',col='black',/data,target=[pwllnon],font_size=11,font_name='Times')
     for i = 0,n_elements(ll_lines)-1 do begin
@@ -570,43 +618,44 @@ if keyword_set(lum_ratio) then begin
     endfor
     ;; remove axes
     pwlldet.axes[0].showtext=0
+    ;; model choice
+    mt = text(ell.xra[1]-diff(ell.xra)/2.,ell.yra[0]+0.5,'Power law model',target=pwlldet,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
+
     ;; Remaining sources
-    pr = plot(logebv[where(iifinal_non)],llnon[where(iifinal_non)],_extra=ell,position=[595,445,1105,825],current=1,/device,/nodata)
+    pr = plot(logebv[where(iiqual_non)],llnon[where(iiqual_non)],_extra=ell,position=[595,445,1105,825],current=1,/device,/nodata)
     pr.axes[1].showtext = 0 & pr.axes[0].showtext = 0
     ;; unobscured shading
-    pr = plot(ell.xra,[1,1]*ell.yra[1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=50,/ov)
+    pr = plot(ell.xra,[1,1]*ell.yra[1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=0,/ov)
     ;; CT shading
-    pr = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    pr = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; plot data
-    prllnon = arrow(transpose([[logebv[where(iifinal_non and ~iidet_wac)]],[logebv[where(iifinal_non and ~iidet_wac)]]]),transpose([[llnon[where(iifinal_non and ~iidet_wac)]],[llnon[where(iifinal_non and ~iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=1)
-    prlldet = plot(logebv[where(iifinal_det and ~iidet_wac)],lldet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
-    p = plot(logebv[where(iifinal_det and ~iidet_wac)],lldet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
-    prllnon = plot(logebv[where(iifinal_non and ~iidet_wac)],llnon[where(iifinal_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,name=" X-ray non-det.",position=[595,445,1105,825],_extra=ell,axis_style=0)
+    prllnon = arrow(transpose([[logebv[where(iiqual_non and ~iidet_wac)]],[logebv[where(iiqual_non and ~iidet_wac)]]]),transpose([[llnon[where(iiqual_non and ~iidet_wac)]],[llnon[where(iiqual_non and ~iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=1)
+    prlldet = plot(logebv[where(iiqual_det and ~iidet_wac)],lldet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
+    p = plot(logebv[where(iiqual_det and ~iidet_wac)],lldet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
+    prllnon = plot(logebv[where(iiqual_non and ~iidet_wac)],llnon[where(iiqual_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,name=" X-ray non-det.",position=[595,445,1105,825],_extra=ell,axis_style=0)
     a_rllnon = axis('y',target=pr,location=[ell.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8L!7_X(!8F!7_X lim) / !8L!7_X(!8L!7_{IR})  (2$-$10 keV)$',tickformat='(d4.1)',tickfont_name='Times',tickfont_size=14)
     ;; non-detections off plot range
-    ;ioff = where(iifinal_non and ~iidet_wac and llnon ge ell.yra[1],noff)
+    ;ioff = where(iiqual_non and ~iidet_wac and llnon ge ell.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_non and ~iidet_wac and llnon le ell.yra[0],noff)
+    ;ioff = where(iiqual_non and ~iidet_wac and llnon le ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;;; detections off plot range
-    ;ioff = where(iifinal_det and ~iidet_wac and lldet gt ell.yra[1],noff)
+    ;ioff = where(iiqual_det and ~iidet_wac and lldet gt ell.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_det and ~iidet_wac and lldet lt ell.yra[0],noff)
+    ;ioff = where(iiqual_det and ~iidet_wac and lldet lt ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
     ;; Catalog sources text
-    t = text(ell.xra[0]+0.22,0.42,'Remaining',col='red',/data,target=[prllnon],font_size=12,font_name='Times',font_style='Bold')
-    t = text(ell.xra[0]+0.22,0.17,'sources',col='red',/data,target=[prllnon],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[0]+0.22,0.50,'Remaining',col='red',/data,target=[prlldet],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[0]+0.22,0.25,'sources',col='red',/data,target=[prlldet],font_size=12,font_name='Times',font_style='Bold')
     ;; NH lines + text
     t = text(ell.xra[0]+0.2,ell.yra[0]+0.4,'$!8N!7_H  [cm^{-2}]$',col='black',/data,target=[prllnon],font_size=11,font_name='Times')
     for i = 0,n_elements(ll_lines)-1 do begin
         p = plot(nh_lines,ll_lines[i]*[1.,1.],'--',col='black',thick=2,/ov)
         t = text(ell.xra[0]+0.2,ypos[i],nhtext[i],col='black',/data,target=[prllnon],alignment=0.,font_size=11,font_name='Times')
     endfor
-    ;; model choice
-    mt = text(-3.6,ell.yra[0]+0.5,'Power law model',target=prlldet,alignment=0.,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;; PLOT NH VS E(B-V)
@@ -624,55 +673,55 @@ if keyword_set(lum_ratio) then begin
     nh_bound = alog10([1e21,1.5e24])
 
     ;; WISE AGN Catalog sources
-    pw = plot(logebv[where(iifinal_non and iidet_wac)],llnon[where(iifinal_non and iidet_wac)],_extra=enh,position=[85,65,595,445],current=1,/device,/nodata,ytitle='$log  !8N!7_H [cm^{-2}]$',ytickvalues=[21.,22.,23.,24.,25.],ytickformat='(i2)')
+    pw = plot(logebv[where(iiqual_non and iidet_wac)],llnon[where(iiqual_non and iidet_wac)],_extra=enh,position=[85,65,595,445],current=1,/device,/nodata,ytitle='$log  !8N!7_H [cm^{-2}]$',ytickvalues=[21.,22.,23.,24.,25.],ytickformat='(i2)')
     ;; CT shading
-    pw = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=50,/ov)
+    pw = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=0,/ov)
     ;; plot data
-    pwnhnon = arrow(transpose([[logebv[where(iifinal_non and iidet_wac)]],[logebv[where(iifinal_non and iidet_wac)]]]),transpose([[nhxnon[where(iifinal_non and iidet_wac)]],[nhxnon[where(iifinal_non and iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
-    ;pwnhnon = plot(logebv[where(iifinal_non and iidet_wac)],nhxnon[where(iifinal_non and iidet_wac)],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name=" X-ray non-det.")
-    pwnhdet = plot(logebv[where(iifinal_det and iidet_wac)],nhxdet[where(iifinal_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
-    p = plot(logebv[where(iifinal_det and iidet_wac)],nhxdet[where(iifinal_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
+    pwnhnon = arrow(transpose([[logebv[where(iiqual_non and iidet_wac)]],[logebv[where(iiqual_non and iidet_wac)]]]),transpose([[nhxnon[where(iiqual_non and iidet_wac)]],[nhxnon[where(iiqual_non and iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
+    ;pwnhnon = plot(logebv[where(iiqual_non and iidet_wac)],nhxnon[where(iiqual_non and iidet_wac)],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name=" X-ray non-det.")
+    pwnhdet = plot(logebv[where(iiqual_det and iidet_wac)],nhxdet[where(iiqual_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
+    p = plot(logebv[where(iiqual_det and iidet_wac)],nhxdet[where(iiqual_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
     ;; non-detections off plot range
-    ;ioff = where(iifinal_non and iidet_wac and nhxnon ge enh.yra[1],noff)
+    ;ioff = where(iiqual_non and iidet_wac and nhxnon ge enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_non and iidet_wac and nhxnon le enh.yra[0],noff)
+    ;ioff = where(iiqual_non and iidet_wac and nhxnon le enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;;; detections off plot range-0.2
-    ;ioff = where(iifinal_det and iidet_wac and nhxdet gt enh.yra[1],noff)
+    ;ioff = where(iiqual_det and iidet_wac and nhxdet gt enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_det and iidet_wac and nhxdet lt enh.yra[0],noff)
+    ;ioff = where(iiqual_det and iidet_wac and nhxdet lt enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; median error bars
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[0.333],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[mean(resamp_rlnh(ret='nh_mad'))],errorbar_capsize=0.1,linestyle="",/ov)
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text
-    t = text(enh.xra[0]+0.22,nh_bound[1]+0.24,'Compton',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
-    t = text(enh.xra[0]+0.22,nh_bound[1]+0.09,'thick',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(enh.xra[0]+0.22,nh_bound[1]+0.40,'Compton',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(enh.xra[0]+0.22,nh_bound[1]+0.15,'thick',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
 
     ;; Remaining sources
-    pr = plot(logebv[where(iifinal_non and ~iidet_wac)],nhxnon[where(iifinal_non and ~iidet_wac)],_extra=enh,position=[595,65,1105,445],current=1,/device,/nodata,ytickvalues=[21.,22.,23.,24.,25.],ytickformat='(i2)')
+    pr = plot(logebv[where(iiqual_non and ~iidet_wac)],nhxnon[where(iiqual_non and ~iidet_wac)],_extra=enh,position=[595,65,1105,445],current=1,/device,/nodata,ytickvalues=[21.,22.,23.,24.,25.],ytickformat='(i2)')
     pr.axes[1].showtext=0
     ;; CT shading
-    pr = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=50,/ov)
+    pr = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=0,/ov)
     ;; plot data
-    prnhnon = arrow(transpose([[logebv[where(iifinal_non and ~iidet_wac)]],[logebv[where(iifinal_non and ~iidet_wac)]]]),transpose([[nhxnon[where(iifinal_non and ~iidet_wac)]],[nhxnon[where(iifinal_non and ~iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=1)
-    prnhdet = plot(logebv[where(iifinal_det and ~iidet_wac)],nhxdet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
-    p = plot(logebv[where(iifinal_det and ~iidet_wac)],nhxdet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.5,transparency=85,/ov)
-    prnhnon = plot(logebv[where(iifinal_non and ~iidet_wac)],nhxnon[where(iifinal_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,position=[595,65,1105,445],_extra=ell,axis_style=0)
+    prnhnon = arrow(transpose([[logebv[where(iiqual_non and ~iidet_wac)]],[logebv[where(iiqual_non and ~iidet_wac)]]]),transpose([[nhxnon[where(iiqual_non and ~iidet_wac)]],[nhxnon[where(iiqual_non and ~iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=1)
+    prnhdet = plot(logebv[where(iiqual_det and ~iidet_wac)],nhxdet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
+    p = plot(logebv[where(iiqual_det and ~iidet_wac)],nhxdet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.5,transparency=85,/ov)
+    prnhnon = plot(logebv[where(iiqual_non and ~iidet_wac)],nhxnon[where(iiqual_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,position=[595,65,1105,445],_extra=ell,axis_style=0)
     a_rnhnon = axis('y',target=pr,location=[enh.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8N!7_H (lim)[cm^{-2}]$',tickfont_name='Times',tickfont_size=14)    
     ;; non-detections off plot range
-    ;ioff = where(iifinal_non and ~iidet_wac and nhxnon ge enh.yra[1],noff)
+    ;ioff = where(iiqual_non and ~iidet_wac and nhxnon ge enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_non and ~iidet_wac and nhxnon le enh.yra[0],noff)
+    ;ioff = where(iiqual_non and ~iidet_wac and nhxnon le enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;;; detections off plot range-0.2
-    ;ioff = where(iifinal_det and ~iidet_wac and nhxdet gt enh.yra[1],noff)
+    ;ioff = where(iiqual_det and ~iidet_wac and nhxdet gt enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_det and ~iidet_wac and nhxdet lt enh.yra[0],noff)
+    ;ioff = where(iiqual_det and ~iidet_wac and nhxdet lt enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)    
@@ -707,40 +756,40 @@ if keyword_set(lum_ratio) then begin
     ll_bound = rl2nh(nh_bound,model=model,/lum_out)
 
     ;; WISE AGN Catalog sources
-    pw = plot(logebv[where(iifinal_non)],llnon[where(iifinal_non)],_extra=ell,position=[85,445,595,825],/device,/nodata,ytickvalues=[-3.0,-2.0,-1.0,0.0,1.0],ytickformat='(d4.1)',ytitle='$log  !8L!7_X / !8L!7_X(!8L!7_{IR})  (2$-$10 keV)$')
+    pw = plot(logebv[where(iiqual_non)],llnon[where(iiqual_non)],_extra=ell,position=[85,445,595,825],/device,/nodata,ytickvalues=[-3.0,-2.0,-1.0,0.0,1.0],ytickformat='(d4.1)',ytitle='$log  !8L!7_X / !8L!7_X(!8L!7_{IR})  (2$-$10 keV)$')
     ;; unobscured shading
-    pw = plot(ell.xra,[1,1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=50,/ov)
+    pw = plot(ell.xra,[1,1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=0,/ov)
     ;; CT shading
-    pw = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    pw = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; plot data
-    pwllnon = arrow(transpose([[logebv[where(iifinal_non and iidet_wac)]],[logebv[where(iifinal_non and iidet_wac)]]]),transpose([[llnon[where(iifinal_non and iidet_wac)]],[llnon[where(iifinal_non and iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
-    ;pwllnon = plot(logebv[where(iifinal_non and iidet_wac)],llnon[where(iifinal_non and iidet_wac)],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name=" X-ray non-det.")
-    pwlldet = plot(logebv[where(iifinal_det and iidet_wac)],lldet[where(iifinal_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov)
-    p = plot(logebv[where(iifinal_det and iidet_wac)],lldet[where(iifinal_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
+    pwllnon = arrow(transpose([[logebv[where(iiqual_non and iidet_wac)]],[logebv[where(iiqual_non and iidet_wac)]]]),transpose([[llnon[where(iiqual_non and iidet_wac)]],[llnon[where(iiqual_non and iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
+    ;pwllnon = plot(logebv[where(iiqual_non and iidet_wac)],llnon[where(iiqual_non and iidet_wac)],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name=" X-ray non-det.")
+    pwlldet = plot(logebv[where(iiqual_det and iidet_wac)],lldet[where(iiqual_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov)
+    p = plot(logebv[where(iiqual_det and iidet_wac)],lldet[where(iiqual_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
     ;; non-detections off plot range
-    ;ioff = where(iifinal_non and iidet_wac and llnon ge ell.yra[1],noff)
+    ;ioff = where(iiqual_non and iidet_wac and llnon ge ell.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_non and iidet_wac and llnon le ell.yra[0],noff)
+    ;ioff = where(iiqual_non and iidet_wac and llnon le ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;;; detections off plot range
-    ;ioff = where(iifinal_det and iidet_wac and lldet gt ell.yra[1],noff)
+    ;ioff = where(iiqual_det and iidet_wac and lldet gt ell.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_det and iidet_wac and lldet lt ell.yra[0],noff)
+    ;ioff = where(iiqual_det and iidet_wac and lldet lt ell.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; median error bars
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iifinal_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iiqual_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text
-    t = text(ell.xra[0]+0.22,0.42,'!16WISE!15 AGN',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
-    t = text(ell.xra[0]+0.22,0.17,'sources',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
-    t = text(ell.xra[1]-0.2,ll_bound[0]+0.15,'Unobscured',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
-    t = text(ell.xra[1]-0.2,ll_bound[1]-0.3,'Compton',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
-    t = text(ell.xra[1]-0.2,ll_bound[1]-0.55,'thick',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(ell.xra[0]+0.22,0.50,'!16WISE!15 AGN',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[0]+0.22,0.25,'sources',col='red',/data,target=[pwllnon],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[1]-0.2,ll_bound[0]+0.14,'Unobscured',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(ell.xra[1]-0.2,ll_bound[1]-0.25,'Compton',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(ell.xra[1]-0.2,ll_bound[1]-0.45,'thick',col='black',target=pwllnon,alignment=1.,font_size=12,font_name='Times',font_style='Bold',/data)
     ;; NH lines + text
     t = text(ell.xra[0]+0.2,ell.yra[0]+0.4,'$!8N!7_H  [cm^{-2}]$',col='black',/data,target=[pwllnon],font_size=11,font_name='Times')
     for i = 0,n_elements(ll_lines)-1 do begin
@@ -749,43 +798,43 @@ if keyword_set(lum_ratio) then begin
     endfor
     ;; remove axes
     pwlldet.axes[0].showtext=0
-    
+    ;; model choice
+    mt = text(ell.xra[1]-diff(ell.xra)/2.,ell.yra[0]+0.5,'BORUS model',target=pwlldet,alignment=0.,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
+
     ;; Remaining sources
-    pr = plot(logebv[where(iifinal_non)],llnon[where(iifinal_non)],_extra=ell,position=[595,445,1105,825],current=1,/device,/nodata)
+    pr = plot(logebv[where(iiqual_non)],llnon[where(iiqual_non)],_extra=ell,position=[595,445,1105,825],current=1,/device,/nodata)
     ;; unobscured shading
-    pr = plot(ell.xra,[1,1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=50,/ov)
+    pr = plot(ell.xra,[1,1],linestyle='',fill_background=1,fill_level=0.,fill_color='light grey',fill_transparency=0,/ov)
     ;; CT shading
-    pr = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    pr = plot(ell.xra,ll_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=ell.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; data
-    prllnon = arrow(transpose([[logebv[where(iifinal_non and ~iidet_wac)]],[logebv[where(iifinal_non and ~iidet_wac)]]]),transpose([[llnon[where(iifinal_non and ~iidet_wac)]],[llnon[where(iifinal_non and ~iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=1)
-    prlldet = plot(logebv[where(iifinal_det and ~iidet_wac)],lldet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
-    p = plot(logebv[where(iifinal_det and ~iidet_wac)],lldet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
-    prllnon = plot(logebv[where(iifinal_non and ~iidet_wac)],llnon[where(iifinal_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,name=" X-ray non-det.",position=[595,445,1105,825],_extra=ell,axis_style=0)
+    prllnon = arrow(transpose([[logebv[where(iiqual_non and ~iidet_wac)]],[logebv[where(iiqual_non and ~iidet_wac)]]]),transpose([[llnon[where(iiqual_non and ~iidet_wac)]],[llnon[where(iiqual_non and ~iidet_wac)]-0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=1)
+    prlldet = plot(logebv[where(iiqual_det and ~iidet_wac)],lldet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov,name=" X-ray detected")
+    p = plot(logebv[where(iiqual_det and ~iidet_wac)],lldet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
+    prllnon = plot(logebv[where(iiqual_non and ~iidet_wac)],llnon[where(iiqual_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,name=" X-ray non-det.",position=[595,445,1105,825],_extra=ell,axis_style=0)
     a_rllnon = axis('y',target=pr,location=[ell.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8L!7_X(!8F!7_X lim) / !8L!7_X(!8L!7_{IR})  (2$-$10 keV)$',tickformat='(d4.1)',tickfont_name='Times',tickfont_size=14)
     ;; non-detections off plot range
-    ioff = where(iifinal_non and ~iidet_wac and llnon ge ell.yra[1],noff)
-    if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ioff = where(iifinal_non and ~iidet_wac and llnon le ell.yra[0],noff)
-    if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;; detections off plot range
-    ioff = where(iifinal_det and ~iidet_wac and lldet gt ell.yra[1],noff)
-    if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ioff = where(iifinal_det and ~iidet_wac and lldet lt ell.yra[0],noff)
-    if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
+    ;ioff = where(iiqual_non and ~iidet_wac and llnon ge ell.yra[1],noff)
+    ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
+    ;ioff = where(iiqual_non and ~iidet_wac and llnon le ell.yra[0],noff)
+    ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
+    ;;; detections off plot range
+    ;ioff = where(iiqual_det and ~iidet_wac and lldet gt ell.yra[1],noff)
+    ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[1]-0.12)],[make_array(noff,value=ell.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
+    ;ioff = where(iiqual_det and ~iidet_wac and lldet lt ell.yra[0],noff)
+    ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=ell.yra[0]+0.12)],[make_array(noff,value=ell.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
     ;; Catalog sources text
-    t = text(ell.xra[0]+0.22,0.42,'Remaining',col='red',/data,target=[prllnon],font_size=12,font_name='Times',font_style='Bold')
-    t = text(ell.xra[0]+0.22,0.17,'sources',col='red',/data,target=[prllnon],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[0]+0.22,0.50,'Remaining',col='red',/data,target=[prlldet],font_size=12,font_name='Times',font_style='Bold')
+    t = text(ell.xra[0]+0.22,0.25,'sources',col='red',/data,target=[prlldet],font_size=12,font_name='Times',font_style='Bold')
     ;; NH lines + text
     t = text(ell.xra[0]+0.2,ell.yra[0]+0.4,'$!8N!7_H  [cm^{-2}]$',col='black',/data,target=[prllnon],font_size=11,font_name='Times')
     for i = 0,n_elements(ll_lines)-1 do begin
         p = plot(nh_lines,ll_lines[i]*[1.,1.],'--',col='black',thick=2,/ov)
         t = text(ell.xra[0]+0.2,ypos[i],nhtext[i],col='black',/data,target=[prllnon],alignment=0.,font_size=11,font_name='Times')
     endfor
-    ;; model choice
-    mt = text(-3.6,ell.yra[0]+0.5,'BORUS model',target=prlldet,alignment=0.,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
 
     ;; remove axes
     prlldet.axes[1].showtext=0
@@ -805,54 +854,54 @@ if keyword_set(lum_ratio) then begin
     nh_bound = alog10([1e21,1.5e24])
 
     ;; WISE AGN Catalog sources
-    pw = plot(logebv[where(iifinal_non and iidet_wac)],llnon[where(iifinal_non and iidet_wac)],_extra=enh,position=[85,65,595,445],current=1,/device,/nodata,ytitle='$log  !8N!7_H [cm^{-2}]$')
+    pw = plot(logebv[where(iiqual_non and iidet_wac)],llnon[where(iiqual_non and iidet_wac)],_extra=enh,position=[85,65,595,445],current=1,/device,/nodata,ytitle='$log  !8N!7_H [cm^{-2}]$')
     ;; CT shading
-    pw = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=50,/ov)
+    pw = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=0,/ov)
     ;; plot data
-    pwnhnon = arrow(transpose([[logebv[where(iifinal_non and iidet_wac)]],[logebv[where(iifinal_non and iidet_wac)]]]),transpose([[nhxnon[where(iifinal_non and iidet_wac)]],[nhxnon[where(iifinal_non and iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
-    ;pwnhnon = plot(logebv[where(iifinal_non and iidet_wac)],nhxnon[where(iifinal_non and iidet_wac)],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name=" X-ray non-det.")
-    pwnhdet = plot(logebv[where(iifinal_det and iidet_wac)],nhxdet[where(iifinal_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov)
-    p = plot(logebv[where(iifinal_det and iidet_wac)],nhxdet[where(iifinal_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
+    pwnhnon = arrow(transpose([[logebv[where(iiqual_non and iidet_wac)]],[logebv[where(iiqual_non and iidet_wac)]]]),transpose([[nhxnon[where(iiqual_non and iidet_wac)]],[nhxnon[where(iiqual_non and iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pw],/data,head_size=0.3,clip=1)
+    ;pwnhnon = plot(logebv[where(iiqual_non and iidet_wac)],nhxnon[where(iiqual_non and iidet_wac)],"o",sym_filled=1,sym_size=0.5,color="orange",transparency=50,/ov,name=" X-ray non-det.")
+    pwnhdet = plot(logebv[where(iiqual_det and iidet_wac)],nhxdet[where(iiqual_det and iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov)
+    p = plot(logebv[where(iiqual_det and iidet_wac)],nhxdet[where(iiqual_det and iidet_wac)],"S",sym_filled=0,sym_size=1.5,transparency=85,/ov)
     ;; non-detections off plot range
-    ;ioff = where(iifinal_non and iidet_wac and nhxnon ge enh.yra[1],noff)
+    ;ioff = where(iiqual_non and iidet_wac and nhxnon ge enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_non and iidet_wac and nhxnon le enh.yra[0],noff)
+    ;ioff = where(iiqual_non and iidet_wac and nhxnon le enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;;; detections off plot range
-    ;ioff = where(iifinal_det and iidet_wac and nhxdet gt enh.yra[1],noff)
+    ;ioff = where(iiqual_det and iidet_wac and nhxdet gt enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_det and iidet_wac and nhxdet lt enh.yra[0],noff)
+    ;ioff = where(iiqual_det and iidet_wac and nhxdet lt enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; median error bars
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
-    perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[0.333],errorbar_capsize=0.1,linestyle="",/ov)
+    perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[mean(resamp_rlnh(ret='nh_mad'))],errorbar_capsize=0.1,linestyle="",/ov)
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text
-    t = text(enh.xra[0]+0.22,nh_bound[1]+0.24,'Compton',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
-    t = text(enh.xra[0]+0.22,nh_bound[1]+0.09,'thick',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(enh.xra[0]+0.22,nh_bound[1]+0.40,'Compton',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
+    t = text(enh.xra[0]+0.22,nh_bound[1]+0.15,'thick',col='black',target=pwnhnon,font_size=12,font_name='Times',font_style='Bold',/data)
 
     ;; Remaining sources
-    pr = plot(logebv[where(iifinal_non and ~iidet_wac)],nhxnon[where(iifinal_non and ~iidet_wac)],_extra=enh,position=[595,65,1105,445],current=1,/device,/nodata)
+    pr = plot(logebv[where(iiqual_non and ~iidet_wac)],nhxnon[where(iiqual_non and ~iidet_wac)],_extra=enh,position=[595,65,1105,445],current=1,/device,/nodata)
     ;; CT shading
-    pr = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=50,/ov)
+    pr = plot(enh.xra,nh_bound[1]*[1,1],linestyle='',fill_background=1,fill_level=enh.yra[1],fill_color='light grey',fill_transparency=0,/ov)
     ;; plot data
-    prnhnon = arrow(transpose([[logebv[where(iifinal_non and ~iidet_wac)]],[logebv[where(iifinal_non and ~iidet_wac)]]]),transpose([[nhxnon[where(iifinal_non and ~iidet_wac)]],[nhxnon[where(iifinal_non and ~iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=2)
-    prnhdet = plot(logebv[where(iifinal_det and ~iidet_wac)],nhxdet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov)
-    p = plot(logebv[where(iifinal_det and ~iidet_wac)],nhxdet[where(iifinal_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.5,transparency=85,/ov)
-    prnhnon = plot(logebv[where(iifinal_non and ~iidet_wac)],nhxnon[where(iifinal_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,position=[595,65,1105,445],_extra=ell,axis_style=0)
+    prnhnon = arrow(transpose([[logebv[where(iiqual_non and ~iidet_wac)]],[logebv[where(iiqual_non and ~iidet_wac)]]]),transpose([[nhxnon[where(iiqual_non and ~iidet_wac)]],[nhxnon[where(iiqual_non and ~iidet_wac)]+0.12]]),color="orange",fill_transparency=75,target=[pr],/data,head_size=0.3,clip=2)
+    prnhdet = plot(logebv[where(iiqual_det and ~iidet_wac)],nhxdet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.,color="dodger blue",/ov)
+    p = plot(logebv[where(iiqual_det and ~iidet_wac)],nhxdet[where(iiqual_det and ~iidet_wac)],"S",sym_filled=1,sym_size=1.5,transparency=85,/ov)
+    prnhnon = plot(logebv[where(iiqual_non and ~iidet_wac)],nhxnon[where(iiqual_non and ~iidet_wac)],"td",sym_filled=1,sym_size=1.,color="orange",/current,/nodata,position=[595,65,1105,445],_extra=ell,axis_style=0)
     a_rnhnon = axis('y',target=pr,location=[enh.xra[1],0,0],textpos=1,tickdir=1,title='$log  !8N!7_H (lim)[cm^{-2}]$',tickfont_name='Times',tickfont_size=14)
     ;; non-detections off plot range
-    ;ioff = where(iifinal_non and ~iidet_wac and nhxnon ge enh.yra[1],noff)
+    ;ioff = where(iiqual_non and ~iidet_wac and nhxnon ge enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='orange',/ov,thick=2,/data,fill_transparency=95,head_size=0.8,target=p)
-    ;ioff = where(iifinal_non and ~iidet_wac and nhxnon le enh.yra[0],noff)
+    ;ioff = where(iiqual_non and ~iidet_wac and nhxnon le enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='orange',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;;; detections off plot range
-    ;ioff = where(iifinal_det and ~iidet_wac and nhxdet gt enh.yra[1],noff)
+    ;ioff = where(iiqual_det and ~iidet_wac and nhxdet gt enh.yra[1],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[1]-0.12)],[make_array(noff,value=enh.yra[1])-0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
-    ;ioff = where(iifinal_det and ~iidet_wac and nhxdet lt enh.yra[0],noff)
+    ;ioff = where(iiqual_det and ~iidet_wac and nhxdet lt enh.yra[0],noff)
     ;if (noff gt 0) then pwoff = arrow(transpose([[logebv[ioff]],[logebv[ioff]]]),transpose([[make_array(noff,value=enh.yra[0]+0.12)],[make_array(noff,value=enh.yra[0])+0.02]]),color='dodger blue',/ov,/data,fill_transparency=100,head_size=0.8,target=p)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
@@ -911,7 +960,7 @@ if keyword_set(nh_dist) then begin
     pw.axes[0].showtext=0
     if (normalize eq 1) then pw.ytickvalues = [0.0:1.2:0.2]
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; data
     if (normalize eq 1) then begin
         ywnb = nm(yhist_wnon_borus)
@@ -944,7 +993,7 @@ if keyword_set(nh_dist) then begin
     pr.axes[1].showtext=0
     ;pr.xtickvalues = [22.:24.]
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; data
     if (normalize eq 1) then begin
         yrnb = nm(yhist_rnon_borus)
@@ -984,7 +1033,7 @@ if keyword_set(nh_dist) then begin
     pw.xtickvalues = [21.:24.:1.]
     if (normalize eq 1) then pw.ytickvalues = [0.0:1.:0.2]
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; data
     if (normalize eq 1) then begin
         ywnp = nm(yhist_wnon_power)
@@ -1008,7 +1057,7 @@ if keyword_set(nh_dist) then begin
     pr.xtickvalues = [22.:25.:1.]
     pr.axes[1].showtext=0
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=50,/ov)
+    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     if (normalize eq 1) then begin
         yrnp = nm(yhist_rnon_power)
         yrdp = nm(yhist_rdet_power)
@@ -1020,8 +1069,8 @@ if keyword_set(nh_dist) then begin
     ;; CT lines
     p = plot([1,1]*alog10(1.5e24),[e.yra[1]*0.875,e.yra[1]],'-',thick=2,/ov)
     p = plot([1,1]*alog10(1.5e24),[e.yra[0],e.yra[1]*0.125],'-',thick=2,/ov)
-    ct = text(24.22,e.yra[1]*0.095,'Compton',col='black',target=pr,font_name='Times',font_style='Bold',/data)          
-    ct = text(24.22,e.yra[1]*0.053,'thick',col='black',target=pr,font_name='Times',font_style='Bold',/data)            
+    ct = text(24.25,0.11,'Compton',col='black',target=pr,font_size=12,font_name='Times',font_style='Bold',/data)          
+    ct = text(24.25,0.05,'thick',col='black',target=pr,font_size=12,font_name='Times',font_style='Bold',/data)            
 
     l = legend(target=[hwdet,hwnon],/normal,/auto_text_color,sample_width=0.1,horizontal_spacing=0.06,font_name='Times')
     l.position = [0.745,0.49]

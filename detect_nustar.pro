@@ -3,6 +3,7 @@ PRO detect_nustar
 
 common _fits
 common _inf_nst
+
 nsrc = n_elements(ra)
 
 ;; Combined NuSTAR Fields
@@ -51,19 +52,24 @@ re = execute('iidet_nst = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and fi
 ;; boolean flag for infield non-detections
 iinon_nst = iiinf_nst and ~iix_nst
 
+;; "clean" X-ray observations
+iiclean_nst = iidet_nst
+;; removed sources
+iidirty_nst = iix_nst and ~iiclean_nst
+
 ;; save detection data
-nst_str = 'NST,SEP_NST,IIX_NST,IIDET_NST,IINON_NST,'+strjoin(nst_vars,',')
+nst_str = 'NST,SEP_NST,IIX_NST,IIDET_NST,IINON_NST,IICLEAN_NST,IIDIRTY_NST,'+strjoin(nst_vars,',')
 re = execute('save,'+nst_str+',/compress,file="detections_nst.sav"')
 
 ;; update in-field data
-inew = where(iix_nst eq 1 and iiinf_nst eq 0,ctnew)
-if (ctnew gt 0) then begin
-    iiinf_nst[inew] = 1
-    texp_nst[inew] = -1.
-    sdst_nst[inew] = -1.
-    inf_str = strjoin(scope_varname(common='_INF_NST'),',')
-    re = execute('save,'+inf_str+',file="infield_nst.sav"')
-endif
+;inew = where(iix_nst eq 1 and iiinf_nst eq 0,ctnew)
+;if (ctnew gt 0) then begin
+;    iiinf_nst[inew] = 1
+;    texp_nst[inew] = -1.
+;    sdst_nst[inew] = -1.
+;    inf_str = strjoin(scope_varname(common='_INF_NST'),',')
+;    re = execute('save,'+inf_str+',file="infield_nst.sav"')
+;endif
 
 
 END

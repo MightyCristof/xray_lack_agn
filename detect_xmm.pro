@@ -3,6 +3,7 @@ PRO detect_xmm
 
 common _fits
 common _inf_xmm
+
 nsrc = n_elements(ra)
 
 ;; XMM DR8 Source Catalog
@@ -65,19 +66,30 @@ iidet_xmm = iiphot and iitime
 ;; boolean flag for infield non-detections
 iinon_xmm = iiinf_xmm and ~iix_xmm
 
+;; "clean" X-ray observations
+;; passes all quality flags
+iinoflag_xmm = (SUM_FLAG EQ 0 OR SUM_FLAG EQ 1) and $      ;; no spurious fields
+                strmatch(PN_SUBMODE,'*Full*')              ;; full CCD chip readout "SCIENCE MODE"
+;; and fail-safe is in XMM catalog
+iiclean_xmm = iix_xmm and iinoflag_xmm
+;; removed sources
+iidirty_xmm = iix_xmm and ~iiclean_xmm
+;; unflag detections where X-ray observations are not clean
+iidet_xmm[where(iidirty_xmm,/null)] = 0
+
 ;; save detection data
-xmm_str = 'XMM,SEP_XMM,IIX_XMM,IIDET_XMM,IINON_XMM,'+strjoin(xmm_vars,',')
+xmm_str = 'XMM,SEP_XMM,IIX_XMM,IIDET_XMM,IINON_XMM,IICLEAN_XMM,IIDIRTY_XMM,'+strjoin(xmm_vars,',')
 re = execute('save,'+xmm_str+',/compress,file="detections_xmm.sav"')
 
 ;; update in-field data
-inew = where(iix_xmm eq 1 and iiinf_xmm eq 0,ctnew)
-if (ctnew gt 0) then begin
-    iiinf_xmm[inew] = 1
-    texp_xmm[inew] = -1.
-    sdst_xmm[inew] = -1.
-    inf_str = strjoin(scope_varname(common='_INF_XMM'),',')
-    re = execute('save,'+inf_str+',file="infield_xmm.sav"')
-endif
+;inew = where(iix_xmm eq 1 and iiinf_xmm eq 0,ctnew)
+;if (ctnew gt 0) then begin
+;    iiinf_xmm[inew] = 1
+;    texp_xmm[inew] = -1.
+;    sdst_xmm[inew] = -1.
+;    inf_str = strjoin(scope_varname(common='_INF_XMM'),',')
+;    re = execute('save,'+inf_str+',file="infield_xmm.sav"')
+;endif
 
 
 END

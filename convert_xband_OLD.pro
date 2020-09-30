@@ -33,13 +33,13 @@ iinon = '('+strjoin('IINON'+xfield,' or ')+') and ~iix'
 re = execute('iinon = '+iinon)
 
 ;; Instrument variables: exposure time, flux, error
-tt = {CHA:strarr(6)+'EXPAC', $
+tt = {CHA:strarr(6)+'ACIS_TIME', $
       XMM:strarr(7)+'PN_ONTIME', $
       NST:['S','H','F']+'EXP'}
-ff = {CHA:'FPL90'+['B','H','M','S','U','W'], $
+ff = {CHA:'FLUX_POWLAW_APER90_'+['B','H','M','S','U','W'], $
       XMM:'PN_'+['1','2','3','4','5','8','9']+'_FLUX', $
       NST:['S','H','F']+'BF'}
-ee = {CHA:'FPL90'+['B','H','M','S','U','W']+'_ERR', $
+ee = {CHA:'FLUX_POWLAW_APER90_'+['B','H','M','S','U','W']+'_ERR', $
       XMM:'PN_'+['1','2','3','4','5','8','9']+'_FLUX_ERR', $
       NST:'E_'+['S','H','F']+'BF'}
 ;; total number of energy bands

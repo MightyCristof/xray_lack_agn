@@ -3,12 +3,11 @@ PRO detect_chandra
 
 common _fits
 common _inf_cha
-
 nsrc = n_elements(ra)
 
 ;; Chandra Source Catalog 2
-;pth1 = '/Users/ccarroll/Research/surveys/Chandra/chandra-source-catalog-2.fits'
-pth1 = '/Users/ccarroll/Research/surveys/Chandra/csc2master.fits'
+pth1 = '/Users/ccarroll/Research/surveys/Chandra/chandra-source-catalog-2.fits'
+pth2 = '/Users/ccarroll/Research/surveys/Chandra/csc2master.fits'
 
 ;; DETECTIONS
 ;; load Chandra Source Catalog 2
@@ -17,10 +16,10 @@ cha = mrdfits(pth1,1)
 ;; add error column
 cat_tags = tag_names(cha)
 xband = ['B','H','M','S','U','W']
-xbflx = cat_tags[where(strmatch(cat_tags,'FPL90?'))]
-xhilim = cat_tags[where(strmatch(cat_tags,'FPL90?_UPP'))]
-xlolim = cat_tags[where(strmatch(cat_tags,'FPL90?_LOW'))]
-ixerr = lindgen(n_elements(xband),start=1)+(where(strmatch(cat_tags,'FPL90?')))[-1]
+xbflx = cat_tags[where(strmatch(cat_tags,'FLUX_POWLAW_APER90_?'))]
+xhilim = cat_tags[where(strmatch(cat_tags,'FLUX_POWLAW_APER90_HILIM_?'))]
+xlolim = cat_tags[where(strmatch(cat_tags,'FLUX_POWLAW_APER90_LOLIM_?'))]
+ixerr = lindgen(n_elements(xband),start=1)+(where(strmatch(cat_tags,'FLUX_POWLAW_APER90_HILIM_?')))[-1]
 xberr = xbflx+'_ERR'
 for i = 0,n_elements(xband)-1 do begin
     re = execute(xberr[i]+' = median([[cha.'+xbflx[i]+'-cha.'+xlolim[i]+'],[cha.'+xhilim[i]+'-cha.'+xbflx[i]+']],/even,dim=2)')
@@ -37,16 +36,16 @@ psf_cha = 6.25
 spherematch,ra,dec,cha.ra,cha.dec,psf_cha/3600.,isamp,imatch,sepx
 sepx *= 3600.
 
-tags = ['_2CXO','RA','DEC','EXPAC', $
-        'FPL90B','FPL90B_ERR', $
-        'FPL90H','FPL90H_ERR', $
-        'FPL90M','FPL90M_ERR', $
-        'FPL90S','FPL90S_ERR', $
-        'FPL90U','FPL90U_ERR', $
-        'FPL90W','FPL90W_ERR', $
-        'HRHS','HRHS_LOW','HRHS_UPP', $         ;; 'HARD_HS','HARD_HS_LOLIM','HARD_HS_HILIM', $
-        'FDW','FP','FS','FV', $                 ;; 'DITHER_WARNING_FLAG','PILEUP_FLAG','SAT_SRC_FLAG','VAR_FLAG', $
-        'FST','FVI','FA' $                      ;; 'STREAK_SRC_FLAG','VAR_INTER_HARD_FLAG','MAN_ADD_FLAG' $
+tags = ['NAME','RA','DEC','ACIS_TIME', $
+        'FLUX_POWLAW_APER90_B','FLUX_POWLAW_APER90_B_ERR', $
+        'FLUX_POWLAW_APER90_H','FLUX_POWLAW_APER90_H_ERR', $
+        'FLUX_POWLAW_APER90_M','FLUX_POWLAW_APER90_M_ERR', $
+        'FLUX_POWLAW_APER90_S','FLUX_POWLAW_APER90_S_ERR', $
+        'FLUX_POWLAW_APER90_U','FLUX_POWLAW_APER90_U_ERR', $
+        'FLUX_POWLAW_APER90_W','FLUX_POWLAW_APER90_W_ERR', $
+        'HARD_HS','HARD_HS_LOLIM','HARD_HS_HILIM', $
+        'DITHER_WARNING_FLAG','PILEUP_FLAG','SAT_SRC_FLAG','VAR_FLAG', $
+        'STREAK_SRC_FLAG','VAR_INTER_HARD_FLAG','MAN_ADD_FLAG' $
         ]
 nvars = n_elements(tags)
 
@@ -70,11 +69,11 @@ sep_cha[isamp] = sepx
 iix_cha = bytarr(nsrc)
 iix_cha[isamp] = 1
 ;; ensure valid photometry
-phot = tags[where(strmatch(cha_vars,'FPL90?'),nphot)]
-photerr = tags[where(strmatch(cha_vars,'FPL90?_ERR'),nphoterr)]
+phot = tags[where(strmatch(cha_vars,'*APER90_?'),nphot)]
+photerr = tags[where(strmatch(cha_vars,'*APER90_?_ERR'),nphoterr)]
 re = execute('iiphot = '+strjoin("(finite("+phot+") and "+phot+" gt 0. and finite("+photerr+") and "+photerr+" gt 0.)"," or "))
 ;; ensure valid exposure time
-iitime = finite(expac) and expac gt 0.
+iitime = finite(acis_time) and acis_time gt 0.
 ;; boolean flag for valid detection in CSC2
 iidet_cha = iiphot and iitime
 ;; boolean flag for infield non-detections
@@ -82,11 +81,9 @@ iinon_cha = iiinf_cha and ~iix_cha
 
 ;; "clean" X-ray observations
 ;; passes all quality flags or was manually added after review
-
-iinoflag_cha = (FDW eq 0 and FP eq 0 and FS eq 0 and  $     ;;  (DITHER_WARNING_FLAG eq 'F' and PILEUP_FLAG eq 'F' and SAT_SRC_FLAG eq 'F' and  $
-                FV eq 0 and FST eq 0 and FVI eq 0) $        ;;   VAR_FLAG eq 'F' and STREAK_SRC_FLAG eq 'F' and VAR_INTER_HARD_FLAG eq 'F') $
-                or FA eq 1                                  ;;   or MAN_ADD_FLAG eq 'T'
-
+iinoflag_cha = (DITHER_WARNING_FLAG eq 'F' and PILEUP_FLAG eq 'F' and SAT_SRC_FLAG eq 'F' and  $
+                VAR_FLAG eq 'F' and STREAK_SRC_FLAG eq 'F' and VAR_INTER_HARD_FLAG eq 'F') $
+                or MAN_ADD_FLAG eq 'T'
 ;; and fail-safe is in Chandra catalog
 iiclean_cha = iix_cha and iinoflag_cha
 ;; removed sources
@@ -99,14 +96,14 @@ cha_str = 'CHA,SEP_CHA,IIX_CHA,IIDET_CHA,IINON_CHA,IICLEAN_CHA,IIDIRTY_CHA,'+str
 re = execute('save,'+cha_str+',/compress,file="detections_cha.sav"')
 
 ;; update in-field data
-;inew = where(iix_cha eq 1 and iiinf_cha eq 0,ctnew)
-;if (ctnew gt 0) then begin
-;    iiinf_cha[inew] = 1
-;    texp_cha[inew] = -1.
-;    sdst_cha[inew] = -1.
-;    inf_str = strjoin(scope_varname(common='_INF_CHA'),',')
-;    re = execute('save,'+inf_str+',file="infield_cha.sav"')
-;endif
+inew = where(iix_cha eq 1 and iiinf_cha eq 0,ctnew)
+if (ctnew gt 0) then begin
+    iiinf_cha[inew] = 1
+    texp_cha[inew] = -1.
+    sdst_cha[inew] = -1.
+    inf_str = strjoin(scope_varname(common='_INF_CHA'),',')
+    re = execute('save,'+inf_str+',file="infield_cha.sav"')
+endif
 
 
 END
