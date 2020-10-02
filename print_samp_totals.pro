@@ -6,6 +6,8 @@ common _inf_cha
 common _inf_xmm
 common _inf_nst
 
+
+nsrcs = n_elements(obs)
 table_name='samp_totals.tex' 
 OPENW,1,table_name
 

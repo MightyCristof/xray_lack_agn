@@ -136,7 +136,7 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; run survival analysis on analysis set
 if keyword_set(surv) then begin
-    surv_analysis;,/asurv
+    surv_analysis,/asurv
     nkeys--        
 endif
 

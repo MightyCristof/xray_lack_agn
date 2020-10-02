@@ -46,25 +46,21 @@ if keyword_set(phot_spec) then begin
     ifile = where(strmatch(file,'phot_spec_srcs.sav'),nfile)
     if keyword_set(new) then nfile = 0
     if (nfile eq 0) then begin
-        ;; zCOSMOS
-        ;dir_cosmos = '/Users/ccarroll/Research/surveys/COSMOS/zCOSMOS/cesam_zcosbrightspec20k_dr3_catalog_1513358585.fits'
-        ;cosm = mrdfits(dir_cosmos,1)
-        ;; SDSS DR12
-        ;dir_sdss = '/Users/ccarroll/Research/surveys/SDSS/DR14/sdss-dr14-cat-part26.fits.gz'
-        ;sdss = mrdfits(dir_sdss,1)
         ;; AGES
         dir_ages = '/Users/ccarroll/Research/surveys/NDWFS/AGES-survey-J_ApJS_200_8_sources.fits'
         ages = mrdfits(dir_ages,1)
+        ;; has spec z
+        izs = where(finite(ages.z1),zslen)
+        if (zslen gt 0) then ages = ages[izs]
+        
         ;; SDSS DR12
         dir_sdss = '/Users/ccarroll/Research/surveys/SDSS/DR14/sdss-dr14-cat-part'+['37','38']+'.fits.gz'
         sdss = [mrdfits(dir_sdss[0],1),mrdfits(dir_sdss[1],1)]
         ;; has photo z
-        izp = where(sdss.zp ne -9999.,zplen)
+        izp = where(finite(sdss.zp) and sdss.zp ne -9999.,zplen)
         if (zplen gt 0) then sdss = sdss[izp]
-        ;; matched to SDSS DR12
-        ;spherematch,sdss.ra_sdss,sdss.dec_sdss,cosm.ra,cosm.dec,6./3600.,isdss,icosm,sep
-        ;cosm = cosm[icosm]
-        ;sdss = sdss[isdss]
+    
+        ;; match
         spherematch,sdss.ra_sdss,sdss.dec_sdss,ages._raj2000,ages._dej2000,3./3600.,isdss,iages,sep
         ages = ages[iages]
         sdss = sdss[isdss]
@@ -76,36 +72,41 @@ if keyword_set(phot_spec) then begin
             sdss = sdss[isep]
             sep  = sep[isep]
         endif
+        
         save,ages,sdss,sep,/compress,file='phot_spec_srcs.sav'
     endif else restore, file[ifile]
-        
-    ;; quality sources
-    ;cosm = cosm[where(cosm.zpec gt 0.,/null)]
-    iizages = (ages.gal eq 1 or ages.qso eq 1 or ages.agn eq 1) and ages.s_n1
-    iizpec1 = sdss.photoerrorclass eq 1
-    iizpec3 = sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3
     
-    sdss = sdss[where(sdss.zp gt 0. and sdss.zp le 0.6,/null)]
-    sdss = sdss[where(sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3,/null)]
-    
-    zs = ages.z1
-    zp = sdss.zp
-    ;; all matches
-    delz = (zp-zs)/(1+zs)
-    mad = medabsdev(delz)
     ;; matches in quality analysis sample
     ifin = where(iiqual and strmatch(ztype,'ZP'),/null)
     ra_fin = ra[ifin]
     dec_fin = dec[ifin]
-    zp_fin = z[ifin]
+    zp_fin = z[ifin]    
+
+    ;; quality sources
+    iiagn = ages.gal eq 1 or ages.qso eq 1 or ages.agn eq 1
+    iizages = iiagn and ages.s_n1 gt 3. and ages.z1 gt 0.
+    iizpec3 = sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3
+    iizpec1 = sdss.photoerrorclass eq 1
+    iizlo = sdss.zp le 0.6
+    iizhi = sdss.zp gt 0.6
+
+    ;; index
+    ind = where(iizages)
+    subages = ages[ind]
+    ;; index
+    zs = subages.z1
+    zp = sdss[ind].zp
+    delz = (zp-zs)/(1+zs)
+    mad = medabsdev(delz)
+
     ;spherematch,ra[iagn],dec[iagn],cosm.ra,cosm.dec,6./3600.,isamp,icosm,sep
-    spherematch,ra_fin,dec_fin,ages._raj2000,ages._dej2000,6./3600.,isamp,iages,sep_samp
-    zs_in = ages[iages].z1
+    spherematch,ra_fin,dec_fin,subages._raj2000,subages._dej2000,3./3600.,isamp,iages,sep_fin
+    zs_in = subages[iages].z1
     zp_in = zp_fin[isamp]
     delz_in = (zp_in-zs_in)/(1+zs_in)
     madfin = medabsdev(delz_in)
-        
-    e = {xra:[0.,1.0],yra:[0.,0.6],aspect_ratio:1, $
+    
+    e = {xra:[0.,1.],yra:[0.,1.],aspect_ratio:1, $
          sym_size:0.5,sym_filled:1,transparency:75, $
          xtitle:'$!8z!7_{spec} (VLT)$',ytitle:'$!8z!7_{phot} (SDSS)$', $
          font_name:'Times',font_size:14, $
@@ -140,11 +141,11 @@ if keyword_set(phot_spec) then begin
     ;if (er.yra[1] mod 2 ne 0) then pr.xtickvalues = (pr.xtickvalues)[0:-2]
     pr.ytickvalues = [-0.4,0.,0.4]
     pr.yminor = 3.
-    mad_str = '$\sigma_{MAD} = '+string(rnd(mad,3),format='(d5.3)')+' ('+string(rnd(madfin,3),format='(d5.3)')+')'+'$'
+    mad_str = '$\sigma_{MAD} = '+string(rnd(mad,5),format='(d5.3)')+'('+string(rnd(madfin,5),format='(d5.3)')+')'+'$'
     t = text(target=pr,er.xra[1]*0.95,er.yra[1]*0.62,mad_str,/data,alignment=1,font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
     ;; histogram of residuals
     yh = histogram(delz,bin=scott(delz),locations=xh)
-    eh = {xra:[0.,ceil(max(yh)/95.)*100.],yra:[-0.3,0.3], $
+    eh = {xra:[0.,round(max(yh)/1000.)*1250.],yra:[-0.3,0.3], $
           stairstep:1,fill_background:1,fill_color:[0,114,178],fill_transparency:10, $
           xtitle:'Frequency', $
           font_name:'Times',font_size:14}
@@ -156,6 +157,7 @@ if keyword_set(phot_spec) then begin
     ph.xminor = 3.
     ;; histogram of zs
     yh_zs = histogram(zs,bin=scott(zs),locations=xh_zs)
+    xh_zs = xh_zs+scott(zs)/2.
     eh_zs = {xra:e.xra,yra:eh.xra, $
             stairstep:1,fill_background:1,fill_color:[0,114,178],fill_transparency:10, $
             ytitle:'Frequency', $
@@ -167,6 +169,7 @@ if keyword_set(phot_spec) then begin
     ph_zs.yminor = 3.
     ;; histogram of zp
     yh_zp = histogram(zp,bin=scott(zp),locations=xh_zp)
+    xh_zp = xh_zp;+scott(zp)/2.
     eh_zp = {xra:eh.xra,yra:e.yra, $
             stairstep:1,fill_background:1,fill_color:[0,114,178],fill_transparency:10, $
             font_name:'Times',font_size:14}
@@ -201,7 +204,7 @@ endif
 ;;----------------------------------------------------------------------------------------
 ;; z HIST
 ;;----------------------------------------------------------------------------------------
-if keyword_set(flux_limit) then begin
+if keyword_set(zhist) then begin
 
     izs = where(strmatch(ztype,'ZS*'))
     izp = where(~strmatch(ztype,'ZS*'))
@@ -549,6 +552,9 @@ endif
 if keyword_set(lum_ratio) then begin
     print, '    PREPARING LUMINOSITY RATIOS'
     
+    ;iiqual_non = iiqual_non and (ztype ne 'ZP' or (photoerrorclass eq 1)); and photoerrorclass le 3))
+    ;iiqual_det = iiqual_det and (ztype ne 'ZP' or (photoerrorclass eq 1)); and photoerrorclass le 3))
+    
     model = 'POWER'
     ;model = 'BORUS'
     
@@ -799,7 +805,7 @@ if keyword_set(lum_ratio) then begin
     ;; remove axes
     pwlldet.axes[0].showtext=0
     ;; model choice
-    mt = text(ell.xra[1]-diff(ell.xra)/2.,ell.yra[0]+0.5,'BORUS model',target=pwlldet,alignment=0.,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
+    mt = text(ell.xra[1]-diff(ell.xra)/2.,ell.yra[0]+0.5,'BORUS model',target=pwlldet,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times',font_style='Bold',/data)
 
     ;; Remaining sources
     pr = plot(logebv[where(iiqual_non)],llnon[where(iiqual_non)],_extra=ell,position=[595,445,1105,825],current=1,/device,/nodata)
@@ -926,14 +932,8 @@ endif
 if keyword_set(nh_dist) then begin
     print, '    PREPARING NH DISTRIBUTION'
     
-    normalize = 1   
-    e = {xra:[21.,25.],yra:[0.,100.], $
-         stairstep:1,fill_background:1, $
-         dimension:[1130,880], $
-         font_name:'Times', $
-         buffer:0}
-    if keyword_set(hide) then e.buffer = 1    
-    if (normalize eq 1) then e.yra = [0.,1.2]
+    wnormalize = 0
+    rnormalize = 1   
     
     ;; BORUS MODEL
     ;; shaded plot boundaries
@@ -942,6 +942,15 @@ if keyword_set(nh_dist) then begin
     nh_bound = alog10([1e21,1.5e24])
     ll_bound = rl2nh(nh_bound,model=model,/lum_out)
     
+    ;; WISE AGN source detections 
+    ew = {xra:[21.,25.],yra:[0.,ceil((max(yhist_wnon_borus)>max(yhist_wnon_power)>max(yhist_wdet_borus)>max(yhist_wdet_power))/10.)*10.], $
+          stairstep:1,fill_background:1, $
+          dimension:[1190,880], $
+          font_name:'Times',font_size:14, $
+          buffer:0}
+    if keyword_set(hide) then ew.buffer = 1    
+    ;if (wnormalize eq 1) then ew.yra = [0.,1.2]
+    
     ;; WISE AGN Catalog source numbers
     ctwd_borus = commas(fix(total(yhist_wdet_borus)))
     ctwn_borus = commas(fix(total(yhist_wnon_borus)))
@@ -949,77 +958,90 @@ if keyword_set(nh_dist) then begin
     ;; arrow x/y span
     yarr = [1.:5.]
     yarr = transpose([[yarr/10.],[yarr/10.]])
-    if (normalize eq 1) then yarr*=e.yra[1]
+    ;if (normalize eq 0) then yarr*=ew.yra[1]
     ;xarr = transpose([[intarr(5)+alog10(1.5e24)+0.1],[intarr(5)+alog10(1.5e24)+0.3]])
     xarr = transpose([[intarr(n_elements(yarr[0,*]))-0.1],[intarr(n_elements(yarr[0,*]))+0.1]])
     print, yarr
 
     ;; make plot
-    pw = plot(xhist_wnon_borus,yhist_wnon_borus,_extra=e,position=[85,445,595,825],/device,/nodata)
+    pw = plot(xhist_wnon_borus,yhist_wnon_borus,_extra=ew,position=[85,445,595,825],/device,/nodata)
     ;pw.xtickvalues = [ceil(e.xra[0]):floor(e.xra[1])]
     pw.axes[0].showtext=0
-    if (normalize eq 1) then pw.ytickvalues = [0.0:1.2:0.2]
+    ;if (normalize eq 1) then pw.ytickvalues = [0.0:1.2:0.2]
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
+    p = plot([alog10(1.5e24),ew.xra[1]],ew.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=ew.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; data
-    if (normalize eq 1) then begin
+    if (wnormalize eq 1) then begin
         ywnb = nm(yhist_wnon_borus)
         ywdb = nm(yhist_wdet_borus)
-    endif    
-    hwnon = plot(xhist_wnon_borus,ywnb,_extra=e,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov,name=' X-ray non-det.')
-    hwdet = plot(xhist_wdet_borus,ywdb,_extra=e,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov,name=' X-ray detected')
+    endif else begin
+        ywnb = yhist_wnon_borus
+        ywdb = yhist_wdet_borus
+    endelse
+    hwnon = plot(xhist_wnon_borus,ywnb,_extra=ew,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov)
+    hwdet = plot(xhist_wdet_borus,ywdb,_extra=ew,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov)
     re = gaussfit(xhist_wnon_borus,ywnb,a,nterms=3)
-    hwlim = arrow(xarr+a[1],yarr,color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hwnon)
+    hwlim = arrow(xarr+a[1],yarr*ew.yra[1],color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hwnon)
     ;; CT lines
-    p = plot([1,1]*alog10(1.5e24),[e.yra[1]*0.875,e.yra[1]],'-',thick=2,/ov)
-    p = plot([1,1]*alog10(1.5e24),[e.yra[0],e.yra[1]*0.125],'-',thick=2,/ov)
+    p = plot([1,1]*alog10(1.5e24),[ew.yra[1]*0.875,ew.yra[1]],'-',thick=2,/ov)
+    p = plot([1,1]*alog10(1.5e24),[ew.yra[0],ew.yra[1]*0.125],'-',thick=2,/ov)
 
     ;; print sources in plot range
-    t = text(e.xra[0]+1.0,0.75,'X-ray det:',col='dodger blue',target=pw,/data,alignment=0.5,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+1.0,0.70,strtrim(ctwd_borus,2)+' sources',col='dodger blue',target=pw,/data,alignment=0.5,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+1.0,0.60,'X-ray non-det:',col='orange',target=pw,/data,alignment=0.5,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+1.0,0.55,strtrim(ctwn_borus,2)+' sources',col='orange',target=pw,/data,alignment=0.5,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+0.14,e.yra[1]*0.902,'!16WISE!15 AGN',col='red',target=pw,/data,font_size=12,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+0.14,e.yra[1]*0.86,'sources',col='red',target=pw,/data,font_size=12,font_name='Times',font_style='Bold')
-    xmod = text(e.xra[0]+diff(e.xra)/3.,e.yra[1]*0.89,'BORUS model',target=pw,/data,font_size=14,font_name='Times',font_style='Bold')
+    t = text(0.25,0.70,'X-ray det:',col='dodger blue',target=pw,/relative,alignment=0.5,font_name='Times',font_style='Bold')
+    t = text(0.25,0.65,strtrim(ctwd_borus,2)+' sources',col='dodger blue',target=pw,/relative,alignment=0.5,font_name='Times',font_style='Bold')
+    t = text(0.25,0.55,'X-ray non-det:',col='orange',target=pw,/relative,alignment=0.5,font_name='Times',font_style='Bold')
+    t = text(0.25,0.50,strtrim(ctwn_borus,2)+' sources',col='orange',target=pw,/relative,alignment=0.5,font_name='Times',font_style='Bold')
+    ;; Catalog sources
+    t = text(0.05,0.90,'!16WISE!15 AGN',col='red',target=pw,/relative,font_size=12,font_name='Times',font_style='Bold')
+    t = text(0.05,0.85,'sources',col='red',target=pw,/relative,font_size=12,font_name='Times',font_style='Bold')
+    xmod = text(ew.xra[0]+diff(ew.xra)/3.,ew.yra[1]*0.89,'BORUS model',target=pw,/data,font_size=14,font_name='Times',font_style='Bold')
 
     ;; Remaining sources
+    er = {xra:[21.,25.],yra:[0.,ceil((max(yhist_rnon_borus)>max(yhist_rnon_power)>max(yhist_rdet_borus)>max(yhist_rdet_power))/200.)*200.], $
+          stairstep:1,fill_background:1, $
+          dimension:[1130,880], $
+          font_name:'Times',font_size:14, $
+          buffer:0}
+    if keyword_set(hide) then er.buffer = 1    
+    if (rnormalize eq 1) then er.yra = [0.,1.2]
+    ;; Remaining source numbers
     ctrd_borus = commas(fix(total(yhist_rdet_borus)))
     ctrn_borus = commas(fix(total(yhist_rnon_borus)))
     
+    ;; data
+    if (rnormalize eq 1) then begin
+        yrnb = nm(yhist_rnon_borus)
+        yrdb = nm(yhist_rdet_borus)
+    endif else begin
+        yrnb = yhist_rnon_borus
+        yrdb = yhist_rdet_borus
+    endelse
     ;; make plot
-    pr = plot(xhist_rnon_borus,yhist_rnon_borus,_extra=e,current=1,position=[595,445,1105,825],/device,/nodata)
+    pr = plot(xhist_rnon_borus,yrnb,_extra=er,current=1,position=[595,445,1105,825],/device,/nodata)
     pr.axes[0].showtext=0
     pr.axes[1].showtext=0
     ;pr.xtickvalues = [22.:24.]
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
-    ;; data
-    if (normalize eq 1) then begin
-        yrnb = nm(yhist_rnon_borus)
-        yrdb = nm(yhist_rdet_borus)
-    endif
-    hrnon = plot(xhist_rnon_borus,yrnb,_extra=e,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov,name=' X-ray non-det.')
-    hrdet = plot(xhist_rdet_borus,yrdb,_extra=e,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov,name=' X-ray detected')
+    p = plot([alog10(1.5e24),er.xra[1]],er.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=er.yra[0],fill_color='light grey',fill_transparency=0,/ov)
+    hrnon = plot(xhist_rnon_borus,yrnb,_extra=er,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov)
+    hrdet = plot(xhist_rdet_borus,yrdb,_extra=er,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov)
+    a_rnon = axis('y',target=hrnon,location=[er.xra[1],0,0],textpos=1,tickdir=1,tickfont_name='Times',tickfont_size=14)    
     re = gaussfit(xhist_rnon_borus,yrnb,a,nterms=3)
-    hrlim = arrow(xarr+a[1],yarr,color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hrnon)
+    hrlim = arrow(xarr+a[1],yarr*er.yra[1],color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hrnon)
     ;; CT lines
-    p = plot([1,1]*alog10(1.5e24),[e.yra[1]*0.875,e.yra[1]],'-',thick=2,/ov)
-    p = plot([1,1]*alog10(1.5e24),[e.yra[0],e.yra[1]*0.125],'-',thick=2,/ov)
+    p = plot([1,1]*alog10(1.5e24),[er.yra[1]*0.875,er.yra[1]],'-',thick=2,/ov)
+    p = plot([1,1]*alog10(1.5e24),[er.yra[0],er.yra[1]*0.125],'-',thick=2,/ov)
     ;ct = text(24.25,1.10,'Compton',col='black',target=pr,font_name='Times',font_style='Bold',/data)            
     ;ct = text(24.25,1.05,'thick',col='black',target=pr,font_name='Times',font_style='Bold',/data)            
 
     ;; sources in plot range
-    t = text(e.xra[0]+1.0,0.75,'X-ray det:',col='dodger blue',target=pr,/data,alignment=0.5,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+1.0,0.7,strtrim(ctrd_borus,2)+' sources',col='dodger blue',target=pr,/data,alignment=0.5,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+1.0,0.60,'X-ray non-det:',col='orange',target=pr,/data,alignment=0.5,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+1.0,0.55,strtrim(ctrn_borus,2)+' sources',col='orange',target=pr,/data,alignment=0.5,font_name='Times',font_style='Bold')
+    t = text(0.25,0.70,'X-ray det:',col='dodger blue',target=pr,/relative,alignment=0.5,font_name='Times',font_style='Bold')
+    t = text(0.25,0.65,strtrim(ctrd_borus,2)+' sources',col='dodger blue',target=pr,/relative,alignment=0.5,font_name='Times',font_style='Bold')
+    t = text(0.25,0.55,'X-ray non-det:',col='orange',target=pr,/relative,alignment=0.5,font_name='Times',font_style='Bold')
+    t = text(0.25,0.50,strtrim(ctrn_borus,2)+' sources',col='orange',target=pr,/relative,alignment=0.5,font_name='Times',font_style='Bold')
     ;; Catalog sources
-    t = text(e.xra[0]+0.14,e.yra[1]*0.902,'Remaining',col='red',target=pr,/data,font_size=12,font_name='Times',font_style='Bold')
-    t = text(e.xra[0]+0.14,e.yra[1]*0.86,'sources',col='red',target=pr,/data,font_size=12,font_name='Times',font_style='Bold')
-
-    xt = text(0.52,0.03,'$log  !8N!7_{H} [cm^{-2}]$',alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times')            
-    yt = text(0.015,0.5,'Frequency [normalized]',orientation=90.,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times')
+    t = text(0.05,0.90,'Remaining',col='red',target=pr,/relative,font_size=12,font_name='Times',font_style='Bold')
+    t = text(0.05,0.85,'sources',col='red',target=pr,/relative,font_size=12,font_name='Times',font_style='Bold')
     
     ;; POWER-LAW MODEL
     ;; shaded plot boundaries
@@ -1029,51 +1051,67 @@ if keyword_set(nh_dist) then begin
     ll_bound = rl2nh(nh_bound,model=model,/lum_out)
 
     ;; WISE AGN Catalog sources
-    pw = plot(xhist_wnon_power,yhist_wnon_power,_extra=e,current=1,position=[85,65,595,445],/device,/nodata)
+    pw = plot(xhist_wnon_power,yhist_wnon_power,_extra=ew,current=1,position=[85,65,595,445],/device,/nodata)
     pw.xtickvalues = [21.:24.:1.]
-    if (normalize eq 1) then pw.ytickvalues = [0.0:1.:0.2]
+    pw.ytickvalues = pw.ytickvalues[0:-2]
+    ;if (normalize eq 1) then pw.ytickvalues = [0.0:1.:0.2]
+    
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
+    p = plot([alog10(1.5e24),ew.xra[1]],ew.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=ew.yra[0],fill_color='light grey',fill_transparency=0,/ov)
     ;; data
-    if (normalize eq 1) then begin
+    if (wnormalize eq 1) then begin
         ywnp = nm(yhist_wnon_power)
         ywdp = nm(yhist_wdet_power)
-    endif
-    hwnon = plot(xhist_wnon_power,ywnp,_extra=e,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov,name=' X-ray non-det.')
-    hwdet = plot(xhist_wdet_power,ywdp,_extra=e,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov,name=' X-ray detected')
+    endif else begin
+        ywnp = yhist_wnon_power
+        ywdp = yhist_wdet_power
+    endelse
+    hwnon = plot(xhist_wnon_power,ywnp,_extra=ew,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov)
+    hwdet = plot(xhist_wdet_power,ywdp,_extra=ew,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov)
     re = gaussfit(xhist_wnon_power,yhist_wnon_power,a,nterms=3)
-    hwlim = arrow(xarr+a[1],yarr,color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hwnon)
+    hwlim = arrow(xarr+a[1],yarr*ew.yra[1],color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hwnon)
     ;; CT lines
-    p = plot([1,1]*alog10(1.5e24),[e.yra[1]*0.875,e.yra[1]],'-',thick=2,/ov)
-    p = plot([1,1]*alog10(1.5e24),[e.yra[0],e.yra[1]*0.125],'-',thick=2,/ov)
-    xmod = text(e.xra[0]+diff(e.xra)/3.,e.yra[1]*0.89,'Power law model',target=pw,/data,font_size=14,font_name='Times',font_style='Bold')
+    p = plot([1,1]*alog10(1.5e24),[ew.yra[1]*0.875,ew.yra[1]],'-',thick=2,/ov)
+    p = plot([1,1]*alog10(1.5e24),[ew.yra[0],ew.yra[1]*0.125],'-',thick=2,/ov)
+    xmod = text(ew.xra[0]+diff(ew.xra)/3.,ew.yra[1]*0.89,'Power law model',target=pw,/data,font_size=14,font_name='Times',font_style='Bold')
     
     ;; Remaining sources
     ctrd_power = commas(fix(total(yhist_rdet_power)))
     ctrn_power = commas(fix(total(yhist_rnon_power)))
     
     ;; make plot
-    pr = plot(xhist_rnon_power,yhist_rnon_power,_extra=e,current=1,position=[595,65,1105,445],/device,/nodata)
+    pr = plot(xhist_rnon_power,yhist_rnon_power,_extra=er,current=1,position=[595,65,1105,445],/device,/nodata)
     pr.xtickvalues = [22.:25.:1.]
     pr.axes[1].showtext=0
     ;; CT shading
-    p = plot([alog10(1.5e24),e.xra[1]],e.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=e.yra[0],fill_color='light grey',fill_transparency=0,/ov)
-    if (normalize eq 1) then begin
+    p = plot([alog10(1.5e24),er.xra[1]],er.yra[1]*[1.,1.],linestyle='',fill_background=1,fill_level=er.yra[0],fill_color='light grey',fill_transparency=0,/ov)
+    if (rnormalize eq 1) then begin
         yrnp = nm(yhist_rnon_power)
         yrdp = nm(yhist_rdet_power)
-    endif
-    hrnon = plot(xhist_rnon_power,yrnp,_extra=e,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov,name=' X-ray non-det.')
-    hrdet = plot(xhist_rdet_power,yrdp,_extra=e,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov,name=' X-ray detected')
+    endif else begin
+        yrnp = yhist_rnon_power
+        yrdp = yhist_rdet_power
+    endelse
+    hrnon = plot(xhist_rnon_power,yrnp,_extra=er,col='orange',thick=2,linestyle='__',fill_color='orange',fill_transparency=75,/ov,name=' X-ray non-det.')
+    hrdet = plot(xhist_rdet_power,yrdp,_extra=er,col='dodger blue',thick=2,fill_color='dodger blue',fill_transparency=75,/ov,name=' X-ray detected')
+    a_rnon = axis('y',target=hrnon,location=[er.xra[1],0,0],textpos=1,tickdir=1,tickfont_name='Times',tickfont_size=14)    
+    a_rnon.tickvalues = a_rnon.tickvalues[0:-2]
     re = gaussfit(xhist_rnon_power,yrnp,a,nterms=3)
-    hrlim = arrow(xarr+a[1],yarr,color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hrnon)
+    hrlim = arrow(xarr+a[1],yarr*er.yra[1],color='orange',/ov,/data,thick=4,fill_transparency=75,head_size=0.8,target=hrnon)
     ;; CT lines
-    p = plot([1,1]*alog10(1.5e24),[e.yra[1]*0.875,e.yra[1]],'-',thick=2,/ov)
-    p = plot([1,1]*alog10(1.5e24),[e.yra[0],e.yra[1]*0.125],'-',thick=2,/ov)
-    ct = text(24.25,0.11,'Compton',col='black',target=pr,font_size=12,font_name='Times',font_style='Bold',/data)          
-    ct = text(24.25,0.05,'thick',col='black',target=pr,font_size=12,font_name='Times',font_style='Bold',/data)            
+    p = plot([1,1]*alog10(1.5e24),[er.yra[1]*0.875,er.yra[1]],'-',thick=2,/ov)
+    p = plot([1,1]*alog10(1.5e24),[er.yra[0],er.yra[1]*0.125],'-',thick=2,/ov)
+    ;; CT text
+    ct = text(0.805,0.09,'Compton',col='black',target=pr,font_size=12,font_name='Times',font_style='Bold',/relative)          
+    ct = text(0.805,0.03,'thick',col='black',target=pr,font_size=12,font_name='Times',font_style='Bold',/relative)            
 
-    l = legend(target=[hwdet,hwnon],/normal,/auto_text_color,sample_width=0.1,horizontal_spacing=0.06,font_name='Times')
-    l.position = [0.745,0.49]
+    xt = text(0.5,0.032,'$log  !8N!7_{H} [cm^{-2}]$',alignment=0.5,vertical_alignment=0.5,font_size=14, font_name='Times')            
+    if (wnormalize eq 1) then yt = text(0.02,0.5,'Frequency (!8WISE!7 AGN sources) [normalized]',orientation=90.,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times') else $
+                              yt = text(0.02,0.5,'Frequency (!8WISE!7 AGN sources)',orientation=90.,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times')
+    if (rnormalize eq 1) then yt2 = text(0.975,0.5,'Frequency (remaining sources) [normalized]',orientation=90.,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times') else $
+                              yt2 = text(0.975,0.5,'Frequency (remaining sources)',orientation=90.,alignment=0.5,vertical_alignment=0.5,font_size=14,font_name='Times')
+
+    l = legend(target=[hrdet,hrnon],position=[0.70,0.49],/normal,/auto_text_color,sample_width=0.1,horizontal_spacing=0.06,font_name='Times')
 
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'

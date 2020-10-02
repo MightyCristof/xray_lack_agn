@@ -1,8 +1,8 @@
 PRO print_xray_lack_agn, COMMANDS = commands, $
                          RECORD = record, $
                          PROPERTY_CUTS = property_cuts, $
-                         QUALITY_CUTS = quality_cuts, $
                          FITS = fits, $
+                         QUALITY_CUTS = quality_cuts, $
                          MRT = mrt
                          
                          
