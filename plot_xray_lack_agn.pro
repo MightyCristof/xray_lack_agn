@@ -75,122 +75,130 @@ if keyword_set(phot_spec) then begin
         
         save,ages,sdss,sep,/compress,file='phot_spec_srcs.sav'
     endif else restore, file[ifile]
-    
-    ;; matches in quality analysis sample
-    ifin = where(iiqual and strmatch(ztype,'ZP'),/null)
-    ra_fin = ra[ifin]
-    dec_fin = dec[ifin]
-    zp_fin = z[ifin]    
+    ;; quality cuts for catalog sources
+    iiqages = (ages.gal eq 1 or ages.qso eq 1 or ages.agn eq 1) and ages.s_n1 gt 3. and ages.z1 gt 0.
+    iiqsdss = sdss.zp gt 0. and sdss.zp le 0.8 and sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3
+    iq = where(iiqages and iiqsdss)    
+    qages = ages[iq]
+    qsdss = sdss[iq]
 
-    ;; quality sources
-    iiagn = ages.gal eq 1 or ages.qso eq 1 or ages.agn eq 1
-    iizages = iiagn and ages.s_n1 gt 3. and ages.z1 gt 0.
-    iizpec3 = sdss.photoerrorclass ge -1 and sdss.photoerrorclass le 3
-    iizpec1 = sdss.photoerrorclass eq 1
-    iizlo = sdss.zp le 0.6
-    iizhi = sdss.zp gt 0.6
+    ;; separate sample from non-sample
+    spherematch,ra,dec,qsdss.ra_sdss,qsdss.dec_sdss,1./3600.,isamp,isdss,sep_samp
+    iiin = bytarr(n_elements(qsdss))
+    iiin[isdss] = 1
+    iin = where(iiin eq 1)
+    iex = where(iiin eq 0)
+    ages_ex = qages[iex]
+    sdss_ex = qsdss[iex]
+    ages_in = qages[iin]
+    sdss_in = qsdss[iin]
 
-    ;; index
-    ind = where(iizages)
-    subages = ages[ind]
-    ;; index
-    zs = subages.z1
-    zp = sdss[ind].zp
-    delz = (zp-zs)/(1+zs)
-    mad = medabsdev(delz)
+    ;; AGES z-spec to replace SDSS z-phot in sample
+    ;zages = dblarr(nsrc)
+    ;zages[isamp] = ages_in.z1
 
-    ;spherematch,ra[iagn],dec[iagn],cosm.ra,cosm.dec,6./3600.,isamp,icosm,sep
-    spherematch,ra_fin,dec_fin,subages._raj2000,subages._dej2000,3./3600.,isamp,iages,sep_fin
-    zs_in = subages[iages].z1
-    zp_in = zp_fin[isamp]
+    ;; variables
+    zs_ex = ages_ex.z1
+    zp_ex = sdss_ex.zp
+    delz_ex = (zp_ex-zs_ex)/(1+zs_ex)
+    zexsig = stddev(delz_ex)
+    nex = n_elements(zs_ex)
+    zs_in = ages_in.z1
+    zp_in = sdss_in.zp
     delz_in = (zp_in-zs_in)/(1+zs_in)
-    madfin = medabsdev(delz_in)
+    zinsig = stddev(delz_in)
+    nin = n_elements(zs_in)
     
+    ;; PLOT ZP vs ZS
     e = {xra:[0.,1.],yra:[0.,1.],aspect_ratio:1, $
          sym_size:0.5,sym_filled:1,transparency:75, $
          xtitle:'$!8z!7_{spec} (VLT)$',ytitle:'$!8z!7_{phot} (SDSS)$', $
          font_name:'Times',font_size:14, $
          dimension:[700,800],buffer:0}
     if keyword_set(hide) then e.buffer = 1
-    col = [0,114,178]
-    col_in = [[204,121,167],[213,94,0],[0,158,115],[0,114,178],[240,228,66]]
-    p = plot(zs,zp,'o',color=col,_extra=e)
+    col_ex = [0,114,178]
+    col_in = [240,228,66]
+    ;; [204,121,167],[213,94,0],[0,158,115],[0,114,178],[240,228,66]
+    p = plot(zs_ex,zp_ex,'o',color=col_ex,_extra=e)
     p.position = [0.12735492,0.33393553,0.769520,0.83583007]
     p = plot([0.,1.],[0.,1.],'--',thick=2,/ov)
-    p = plot(zs_in,zp_in,'o',color=col_in[*,4],sym_size=0.5,sym_filled=1,/ov)
-    p = plot(zs_in,zp_in,'o',color=black,sym_size=0.75,sym_thick=1.,sym_filled=0,transparency=50,/ov)
-    ioff = where(zs gt e.xra[1] and zp lt e.yra[1]-0.02,noff)
-    ;if (noff gt 0) then poff = arrow(transpose([[make_array(noff,value=e.xra[1]-0.012)],[make_array(noff,value=e.xra[1])-0.002]]),transpose([[zp[ioff]],[zp[ioff]]]),color=col,/ov,/data,fill_transparency=100,head_size=0.8,clip=1,target=p)
+    p = plot(zs_in,zp_in,'o',color=col_in,sym_size=0.5,sym_filled=1,/ov)
+    p = plot(zs_in,zp_in,'o',color=black,sym_size=0.5,sym_thick=1.,sym_filled=0,transparency=75,/ov)
+    iexoff = where(zs_ex gt e.xra[1],nexoff)
+    iinoff = where(zs_in gt e.xra[1],ninoff)
     p.axes[0].showtext = 0
-    ;p.ytickvalues = (p.ytickvalues)[0:-2]
-    num_str = '$Num. matches = '+commas(strtrim(n_elements(zs),2))+' ('+strtrim(n_elements(zs_in),2)+')'+'$'
+    num_str = '$Num. matches = '+commas(strtrim(nex,2))+' ('+commas(strtrim(nin,2))+')'+'$'
     t = text(target=p,e.xra[1]*0.95,e.yra[1]*0.05,num_str,/data,alignment=1,font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
-    ;; residuals plot
+    ;; PLOT RESIDUALS
     er = {xra:e.xra,yra:[-0.8,0.8],aspect_ratio:0, $
           sym_size:0.5,sym_filled:1,transparency:75, $
           xtitle:'$!8z!7_{spec} (MMT)$',ytitle:'$\Delta!8z!7 / (1+!8z!7_{spec})$', $
           font_name:'Times',font_size:14, $
           dimension:[700,800],buffer:0}
-    pr = plot(zs,delz,'o',color=col,_extra=er,/current)
+    pr = plot(zs_ex,delz_ex,'o',color=col_ex,_extra=er,/current)
     pr.position = [p.position[0],0.13195312,p.position[2],p.position[1]]
     pr = plot(p.xra,[0,0],'--',thick=2,/ov)
-    pr = plot(zs_in,delz_in,'o',color=col_in[*,4],sym_size=0.5,sym_filled=1,/ov)
-    pr = plot(zs_in,delz_in,'o',color=black,sym_size=0.75,sym_thick=1.,sym_filled=0,transparency=60,/ov)
-    iroff = where(zs gt er.xra[1] and delz gt er.yra[0],nroff)
-    ;if (nroff gt 0) then proff = arrow(transpose([[make_array(nroff,value=e.xra[1]-0.012)],[make_array(nroff,value=e.xra[1])-0.002]]),transpose([[delz[iroff]],[delz[iroff]]]),color=col,/ov,/data,fill_transparency=100,head_size=0.8,clip=1,target=pr)
-    ;if (er.yra[1] mod 2 ne 0) then pr.xtickvalues = (pr.xtickvalues)[0:-2]
+    pr = plot(zs_in,delz_in,'o',color=col_in,sym_size=0.5,sym_filled=1,/ov)
+    pr = plot(zs_in,delz_in,'o',color=black,sym_size=0.5,sym_thick=1.,sym_filled=0,transparency=75,/ov)
     pr.ytickvalues = [-0.4,0.,0.4]
     pr.yminor = 3.
-    mad_str = '$\sigma_{MAD} = '+string(rnd(mad,5),format='(d5.3)')+'('+string(rnd(madfin,5),format='(d5.3)')+')'+'$'
-    t = text(target=pr,er.xra[1]*0.95,er.yra[1]*0.62,mad_str,/data,alignment=1,font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
-    ;; histogram of residuals
-    yh = histogram(delz,bin=scott(delz),locations=xh)
-    eh = {xra:[0.,round(max(yh)/1000.)*1250.],yra:[-0.3,0.3], $
-          stairstep:1,fill_background:1,fill_color:[0,114,178],fill_transparency:10, $
+    zsig_str = '$\sigma_{\Delta z} = '+string(rnd(zexsig,5),format='(d5.3)')+'('+string(rnd(zinsig,5),format='(d5.3)')+')'+'$'
+    t = text(target=pr,er.xra[1]*0.95,er.yra[1]*0.62,zsig_str,/data,alignment=1,font_size=14,font_style='Bold',font_name='Times',fill_background=1,fill_color='white')
+    ;; PLOT RESIDUALS HISTOGRAM
+    yh_ex = histogram(delz_ex,bin=scott(delz_ex),locations=xh_ex)
+    yh_in = histogram(delz_in,bin=scott(delz_in),locations=xh_in)
+    eh = {xra:[0.,ceil(max(yh_ex)/100.)*100.],yra:[-0.3,0.3], $
+          stairstep:1,fill_background:1,fill_transparency:10, $
           xtitle:'Frequency', $
           font_name:'Times',font_size:14}
-    ph = plot(yh,xh,/current,_extra=eh)
+    ph = plot(yh_ex,xh_ex,/current,_extra=eh,fill_color=col_ex)
+    ph = plot(yh_in,xh_in,/ov,_extra=eh,fill_color=col_in)
     ph = plot(ph.xra,[0.,0.],'--',thick=2,/ov)
     ph.position = [p.position[2],pr.position[1],0.91303385,pr.position[3]]
     ph.axes[1].showtext = 0
     ph.xtickvalues = [ph.xra[1]/2.,ph.xra[1]]
     ph.xminor = 3.
-    ;; histogram of zs
-    yh_zs = histogram(zs,bin=scott(zs),locations=xh_zs)
-    xh_zs = xh_zs+scott(zs)/2.
+    ;; PLOT ZS HISTOGRAM
+    zbin = 0.025;scott(zs)>scott(zp)
+    yhzs_ex = histogram(zs_ex,bin=zbin,locations=xhzs_ex,min=0.,max=1.)
+    yhzs_in = histogram(zs_in,bin=zbin,locations=xhzs_in,min=0.,max=1.)
+    xhzs_ex = xhzs_ex+zbin/2.
+    xhzs_in = xhzs_in+zbin/2.
     eh_zs = {xra:e.xra,yra:eh.xra, $
-            stairstep:1,fill_background:1,fill_color:[0,114,178],fill_transparency:10, $
+            stairstep:1,fill_background:1,fill_transparency:10, $
             ytitle:'Frequency', $
             font_name:'Times',font_size:14}
-    ph_zs = plot(xh_zs,yh_zs,/current,_extra=eh_zs)
+    ph_zs = plot(xhzs_ex,yhzs_ex,/current,_extra=eh_zs,fill_color=col_ex)
+    ph_zs = plot(xhzs_in,yhzs_in,/ov,_extra=eh_zs,fill_color=col_in)
     ph_zs.position = [p.position[0],p.position[3],p.position[2],0.95303385]
     ph_zs.axes[0].showtext = 0
     ph_zs.ytickvalues = ph.xtickvalues
     ph_zs.yminor = 3.
-    ;; histogram of zp
-    yh_zp = histogram(zp,bin=scott(zp),locations=xh_zp)
-    xh_zp = xh_zp;+scott(zp)/2.
+    ;; PLOT ZP HISTOGRAM
+    yhzp_ex = histogram(zp_ex,bin=zbin,locations=xhzp_ex,min=0.,max=1.)
+    yhzp_in = histogram(zp_in,bin=zbin,locations=xhzp_in,min=0.,max=1.)
+    ;xhzp_ex = xhzp_ex+zbin/2.
+    ;xhzp_in = xhzp_in+zbin/2.
     eh_zp = {xra:eh.xra,yra:e.yra, $
-            stairstep:1,fill_background:1,fill_color:[0,114,178],fill_transparency:10, $
+            stairstep:1,fill_background:1,fill_transparency:10, $
             font_name:'Times',font_size:14}
-    ph_zp = plot(yh_zp,xh_zp,/current,_extra=eh_zp)
+    ph_zp = plot(yhzp_ex,xhzp_ex,/current,_extra=eh_zp,fill_color=col_ex)
+    ph_zp = plot(yhzp_in,xhzp_in,/ov,_extra=eh_zp,fill_color=col_in)
     ph_zp.position = [p.position[2],p.position[1],ph.position[2],p.position[3]]
     ph_zp.axes[1].showtext = 0
     ph_zp.axes[0].showtext = 0
     ph_zp.xtickvalues = ph.xtickvalues
     ph_zp.xminor = 3.
-
-    print, 'NUM. MATCHES: ' + strtrim(n_elements(zs),2)
-    print, 'NUM. MISSES: ' + strtrim(noff,2)
-    print, 'NUM. SAMPLE:   ' + strtrim(n_elements(zs_in),2)   
-    print, 'SIGMA MAD:  ' + strtrim(mad,2)
-    print, 'SIGMA MAD QUAL: ' + strtrim(madfin,2)
-    
-    nages = n_elements(zs)
-    nqages = n_elements(zs_in)
-    nagesoff = noff
-    
-    save,nages,nqages,nagesoff,mad,madfin,file='phot_spec_errs.sav'
+        
+    print, 'NUM. SDSS:        ' + strtrim(nex,2)
+    print, 'NUM. SAMP:        ' + strtrim(nin,2)
+    print, 'NUM. SDSS MISSES: ' + strtrim(nexoff,2)
+    print, 'NUM. SAMP MISSES: ' + strtrim(ninoff,2)
+    print, 'SIGMA ZSDSS:      ' + strtrim(zexsig,2)
+    print, 'SIGMA ZSAMP:      ' + strtrim(zinsig,2)
+        
+    save,nex,nin,nexoff,ninoff,zexsig,zinsig,file='phot_spec_errs.sav'
+    ;save,zages,file='zages.sav'
 
     if keyword_set(sav) then begin
         print, '    SAVING PLOT'
@@ -207,33 +215,40 @@ endif
 if keyword_set(zhist) then begin
 
     izs = where(strmatch(ztype,'ZS*'))
-    izp = where(~strmatch(ztype,'ZS*'))
+    izp = where(strmatch(ztype,'ZP'))
+    izx = where(strmatch(ztype,'PEAKZ'))
     
-    yz = [0.,histogram(z,bin=0.02d,location=xz,min=0.,max=1.),0.]
-    yzs = [0.,histogram(z[izs],bin=0.02d,location=xzs,min=0.,max=1.),0.]
-    yzp = [0.,histogram(z[izp],bin=0.02d,location=xzp,min=0.,max=1.),0.]
-    xz = [-0.02d,xz,1.02d]+0.01d
-    xzs = [-0.02d,xzs,1.02d]+0.01d
-    xzp = [-0.02d,xzp,1.02d]+0.01d
+    zbin = 0.02d
+    yz = [0.,histogram(z,bin=zbin,location=xz,min=0.,max=max(z)),0.]
+    yzs = [0.,histogram(z[izs],bin=zbin,location=xzs,min=0.,max=max(z)),0.]
+    yzp = [0.,histogram(z[izp],bin=zbin,location=xzp,min=0.,max=max(z)),0.]
+    yzx = [0.,histogram(z[izx],bin=zbin,location=xzx,min=0.,max=max(z)),0.]
+    xz = [-0.02d,xz,max(z)+zbin]+zbin/2.
+    xzs = [-0.02d,xzs,max(z)+zbin]+zbin/2.
+    xzp = [-0.02d,xzp,max(z)+zbin]+zbin/2.
+    xzx = [-0.02d,xzx,max(z)+zbin]+zbin/2.
 
-    
-    
-    col = [[27,158,119],[117,112,179]]
-    
+    col = [[27,158,119],[217,95,2],[117,112,179],[231,41,138],[102,166,30]]
+    col = col[*,[0,2,3]]
+    ;col = [[227,26,28],[166,206,227]]
     
     e = {xtitle:'!8z!7',ytitle:'Frequency', $
          font_size:14,font_name:'Times', $
-         xra:[-0.02,1.02], $
+         xra:[-zbin,max(z)+zbin], $
+         yra:[0.,ceil((max(yz))/100.)*100.], $
          stairstep:1,thick:2, $
          fill_background:1,fill_transparency:75}
-    pz = plot(xz,yz,_extra=e,linestyle='-')
-    pzp = plot(xzp,yzp,_extra=e,col=col[*,0],fill_color=col[*,0],linestyle='__',/ov,name='!7z!8$_{phot}$')    
-    pzs = plot(xzs,yzs,_extra=e,col=col[*,1],fill_color=col[*,1],linestyle='-',/ov,name='!7z!8$_{spec}$')   
-    l = legend(target=[pzs,pzp],position=[0.9,2000],/data,/auto_text_color,sample_width=0.1,horizontal_spacing=0.06,font_name='Times',font_size=16)
+    p = plot(xz,yz,_extra=e,linestyle='-',/nodata,yra=[0,2300])
+    pzp = plot(xzp,yzp,_extra=e,col=col[*,0],fill_color=col[*,0],linestyle='__',/ov,name='!8z!7$_{phot}$ (SDSS DR12)')    
+    pzs = plot(xzs,yzs,_extra=e,col=col[*,1],fill_color=col[*,1],linestyle='-',/ov,name='!8z!7$_{spec}$') 
+    pzx = plot(xzx,yzx,_extra=e,col=col[*,2],fill_color=col[*,2],linestyle='-.',/ov,name='!8z!7$_{phot}$ (!8XDQSOz!7)')
+    l = legend(target=[pzs,pzp,pzx],position=[0.86,0.95],/relative,/auto_text_color,sample_width=0.16,horizontal_spacing=0.06,font_name='Times',font_size=14)
     
-    
-    
-    
+    if keyword_set(sav) then begin
+        print, '    SAVING PLOT'
+        if (strupcase(strtrim(sav,2)) eq 'EPS') then p.save,'figures/zhist.eps',/BITMAP else $
+                                                     p.save,'figures/zhist.png',resolution=res
+    endif
 endif
 
 
@@ -277,8 +292,8 @@ if keyword_set(flux_limit) then begin
         perr = plot([xpt[i]],ypt,'s',sym_size=4,sym_thick=2,/ov)
         re = execute('yer = [median(CAT_ERR'+xfield[i]+'/(alog(10.)*CAT_FLX'+xfield[i]+'))]')
         perr = errorplot([xpt[i]],ypt,yer,errorbar_capsize=0.1,linestyle='',/ov)
-        perr = plot([xpt[i]],ypt,'S',col='white',sym_size=1.5,sym_filled=1,/ov)
-        perr = plot([xpt[i]],ypt,'S',col='dodger blue',sym_size=1.5,sym_filled=0,/ov)
+        perr = plot([xpt[i]],ypt,'S',col='white',sym_size=1.,sym_filled=1,/ov)
+        perr = plot([xpt[i]],ypt,'S',col='dodger blue',sym_size=1.,sym_filled=0,/ov)
         ;if (i eq 2) then terr = text(xpt[i]*1.4,ypt,target=perr,/data,'$Median \sigma_{log !8F!7}$',vertical_alignment=0.5,font_size=12,font_name='Times')
         ;if (i ne axis_src) then p.axes[which_axis].showtext = 0
         t = text(0.06,0.88,cat[i],target=p,/RELATIVE,font_size=16,font_style='Bold italic',alignment=0.,font_name='Times')
@@ -339,7 +354,7 @@ endif
 if keyword_set(seds) then begin
     print, '    PREPARING PAPER SED'
     igal = ['1237652900229415056','1237655370892116222','1237651272441725119']
-    ids = ['1237679254133735725','1237670448374809772','1237679437739524714','1237679321788317973',igal[0:1]]
+    ids = ['1237679254133735725','1237662663208206976','1237679437739524714','1237679321788317973',igal[0:1]]
     ;; others     '1237664291009921910'
     nplt = n_elements(ids)
     inds = []
@@ -413,7 +428,7 @@ if keyword_set(seds) then begin
     coeff = reform(strtrim(string(coeff,format='(e10.3)'),2),ntemps,nplt)
     plot_chi = strtrim(string(plot_chi[0,*],format='(d0.2)'),2)+' / '+strtrim(string(plot_chi[1,*],format='(i)'),2)
     ;; plot SEDs
-    e = {xr:[0.05,30.],yra:[floor(min(plot_flux[where(finite(plot_flux))]))-1.5,ceil(max(plot_flux[where(finite(plot_flux))]))+2.0], $
+    e = {xr:[0.05,30.],yra:[-15.5,-8.5], $     ;[floor(min(plot_flux[where(finite(plot_flux))]))-1.5,ceil(max(plot_flux[where(finite(plot_flux))]))+2.0], $
          xlog:1, $
          font_name:'Times',font_size:14,$
          ;xtitle:'$\lambda (observed) [ \mum ]$',ytitle:'$log  \nu!8F!7_\nu  [erg s^{-1}cm^{-2}]$', $
@@ -441,12 +456,12 @@ if keyword_set(seds) then begin
         p = plot(tempwav[*,i],model[*,i],col='dark slate grey',thick=2,/ov)                                                           ;; plot coadded models
         p = errorplot(objwav[ig,i],plot_flux[ig,i],plot_err[ig,i],'o',SYM_FILLED=1,LINESTYLE='',sym_size=1.5,errorbar_thick=2,/OV)          ;; plot photometry
         for t = 0,n_elements(label[*,0])-1 do begin
-            lab = text(0.07,e.yra[1]-(1.5+t)/2.4,label[t,i],font_size=16,/DATA,target=p,font_name='Times')
+            lab = text(0.08,e.yra[1]-0.2-(1.5+t)/2.4,label[t,i],font_size=16,/DATA,target=p,font_name='Times')
             ;fit = text(1.95,yp-t*0.35,temps[t]+': '+coeff[t,i],col=col[*,t],font_size=12,/DATA,TARGET=p,font_name='Times')
         endfor
-        if (i eq 1) then l = legend(target=[p_agn,p_ell,p_sfg,p_irr],position=[0.92,0.95],/auto_text_color,sample_width=0.07,horizontal_spacing=0.06,font_name='Times')
+        if (i eq 1) then l = legend(target=[p_agn,p_ell,p_sfg,p_irr],position=[0.91,0.94],/auto_text_color,sample_width=0.07,horizontal_spacing=0.06,font_name='Times')
     endfor
-    xt = text(0.52,0.025,'$\lambda (observed) [ \mum ]$',alignment=0.5,font_size=14,font_name='Times')
+    xt = text(0.52,0.025,'$\lambda (observed) [ \mum ]$',alignment=0.5,font_size=16,font_name='Times')
     yt = text(0.028,0.52,'$log  \nu!8F!7_\nu  [erg s^{-1}cm^{-2}]$',orientation=90,alignment=0.5,font_size=14,font_name='Times')
     
     if keyword_set(sav) then begin
@@ -463,6 +478,11 @@ endif
 ;;----------------------------------------------------------------------------------------
 if keyword_set(lx_lir) then begin
     print, '    PREPARING PAPER LX vs LIR'
+    
+    file = file_search('chen17_bw?.png')
+    if (file[0] eq '') then begin
+        spawn,'cp /Users/ccarroll/Research/projects/xray_lack_agn/workspace/data_prep/chen17_bw*.png .'
+    endif
     
     ;; Chen+17 LX-LIR
     xrel_chen = [40.:50.:0.01]
@@ -604,8 +624,8 @@ if keyword_set(lum_ratio) then begin
     ;; median error bars
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
     perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iiqual_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.] ,"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.,col='white',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.] ,"S",sym_filled=0,sym_size=1.,col='dodger blue',/ov)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
@@ -700,8 +720,8 @@ if keyword_set(lum_ratio) then begin
     ;; median error bars
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
     perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[mean(resamp_rlnh(ret='nh_mad'))],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.,col='white',/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.,col='dodger blue',/ov)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text
@@ -785,8 +805,8 @@ if keyword_set(lum_ratio) then begin
     ;; median error bars
     perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
     perr = errorplot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],[median(e_lldet[where(iiqual_det and iidet_wac)])],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=1,sym_size=1.,col='white',/ov)
+    perr = plot([-2.2],[ell.yra[0]-(ell.yra[0]-ll_bound[1])/2.],"S",sym_filled=0,sym_size=1.,col='dodger blue',/ov)
     ;; CT lines
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[0]*[1,1],'-',thick=2,/ov)
     p = plot(ell.xra[1]+[-0.7,0.],ll_bound[1]*[1,1],'-',thick=2,/ov)
@@ -881,8 +901,8 @@ if keyword_set(lum_ratio) then begin
     ;; median error bars
     perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],'s',sym_size=4,sym_thick=2,/ov)
     perr = errorplot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],[mean(resamp_rlnh(ret='nh_mad'))],errorbar_capsize=0.1,linestyle="",/ov)
-    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.5,col='white',/ov)
-    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.5,col='dodger blue',/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=1,sym_size=1.,col='white',/ov)
+    perr = plot([-2.2],[enh.yra[1]-(enh.yra[1]-nh_bound[1])/2.],"S",sym_filled=0,sym_size=1.,col='dodger blue',/ov)
     ;; CT lines
     p = plot(enh.xra[0]+[0.,0.7],nh_bound[1]*[1,1],'-',thick=2,/ov)
     ;; catalog sources text

@@ -49,6 +49,7 @@ obsc = obsc[where(iiqual)]
 det = det[where(iiqual)]
 rl = rl[where(iiqual)]
 iwac = iidet_wac[where(iiqual)]
+save,det,rl,iwac,file='surv_input.sav'
 
 ;; univariate, KM test
 forprint,det,rl,format='2x,a2,2x,d7.4',textout='all.dat',/nocomment
@@ -89,8 +90,8 @@ re = execute('save,'+sav_str+',file="stack_fx.sav"')
 
 ;; OUTPUT SOURCES FOR X-RAY STACKING ANALYSIS
 source_set = ['WAGN_NON','WAGN_DET','RAGN_NON','RAGN_DET']
-vars = ['OBJID','RA','E_RA','DEC','E_DEC','Z','ZERR','LIR','E_LIR','FX','E_FX','FXLIM','E_FXLIM']
-source = {sdss_id:0ll,ra:0d,e_ra:0d,dec:0d,e_dec:0d,z:0d,zerr:0d,lir6:0d,e_lir6:0d,fx210:0d,e_fx210:0d,fxlim:0d,e_fxlim:0d}
+vars = ['OBJID','RA','E_RA','DEC','E_DEC','Z','ZERR','LIR','E_LIR','EXP_CHA','FX','E_FX','TEXP_CHA','FXLIM','E_FXLIM']
+source = {sdss_id:0ll,ra:0d,e_ra:0d,dec:0d,e_dec:0d,z:0d,zerr:0d,lir6:0d,e_lir6:0d,exp:0d,fx210:0d,e_fx210:0d,exp_lim:0d,fxlim:0d,e_fxlim:0d}
 tags = tag_names(source)
 for i = 0,n_elements(source_set)-1 do begin
     re = execute(ind[i])

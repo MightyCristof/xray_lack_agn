@@ -41,6 +41,7 @@ if keyword_set(commands) then begin
     printf,99,'\newcommand{\chandra}{\emph{Chandra}\xspace}'
     printf,99,'\newcommand{\galex}{\emph{GALEX}\xspace}'
     printf,99,'\newcommand{\wise}{\emph{WISE}\xspace}'
+    printf,99,'\newcommand{\xdqso}{\emph{XDQSOz}\xspace}'
     printf,99,'\newcommand{\numaster}{\textsc{numaster}\xspace}'
     printf,99,'\newcommand{\xmmmaster}{\textsc{xmmmaster}\xspace}'
     printf,99,'\newcommand{\chanmaster}{\textsc{chanmaster}\xspace}'
@@ -110,11 +111,11 @@ if keyword_set(commands) then begin
     printf,99,'\newcommand{\prctdetwagn}{'+strtrim(round(total(iidet_wac and iiqual_det)/total(iiqual)*100),2)+'\%\xspace}'
     printf,99,'\newcommand{\prctnonwagn}{'+strtrim(round(total(iidet_wac and iiqual_non)/total(iiqual)*100),2)+'\%\xspace}'
     printf,99,'\newcommand{\prctctwagn}{${\sim}$'+strtrim(round(total(iidet_wac and iiqual_non and llnon le (rl2nh(alog10(1.5e24),model='BORUS',/lum_out))[0])/total(iidet_wac and iiqual_non)*100),2)+'\%\xspace}'
-    printf,99,'\newcommand{\nages}{'+commas(nages)+'\xspace}'
-    printf,99,'\newcommand{\nqages}{'+commas(nqages)+'\xspace}'
-    printf,99,'\newcommand{\nagesoff}{'+commas(nagesoff)+'\xspace}'
-    printf,99,'\newcommand{\mad}{'+string(rnd(mad,3),format="(d5.3)")+'\xspace}'
-    printf,99,'\newcommand{\madfin}{'+string(rnd(madfin,3),format="(d5.3)")+'\xspace}'
+    printf,99,'\newcommand{\nexages}{'+commas(nmages)+'\xspace}'
+    printf,99,'\newcommand{\ninages}{'+commas(nmqages)+'\xspace}'
+    printf,99,'\newcommand{\nexsoff}{'+commas(nmagesoff)+'\xspace}'
+    printf,99,'\newcommand{\zexsig}{'+string(rnd(zsig,3),format="(d5.3)")+'\xspace}'
+    printf,99,'\newcommand{\zinsig}{'+string(rnd(zqsig,3),format="(d5.3)")+'\xspace}'
     CLOSE,99
 endif
 
