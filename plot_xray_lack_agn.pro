@@ -216,7 +216,7 @@ if keyword_set(zhist) then begin
 
     izs = where(strmatch(ztype,'ZS*'))
     izp = where(strmatch(ztype,'ZP'))
-    izx = where(strmatch(ztype,'PEAKZ'))
+    izx = where(strmatch(ztype,'ZPXD'))
     
     zbin = 0.02d
     yz = [0.,histogram(z,bin=zbin,location=xz,min=0.,max=max(z)),0.]
