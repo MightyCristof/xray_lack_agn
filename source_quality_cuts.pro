@@ -10,13 +10,10 @@ common _inf_nst
 common _det_cha     
 common _det_xmm     
 common _det_nst     
-common _det_wac     
+common _wac     
 common _xconv      
 common _fxlim     
 common _agnlum
-;common _clean_cha   
-;common _clean_xmm   
-;common _clean_nst   
 
 
 
@@ -36,8 +33,8 @@ dof = reform(param[-1,*])
 rchi = chi/dof
 iichi = rchi le 20.
 ;; separate IR bright and weak sources
-iiirb = lir ge 42.
-iiirw = lir gt 0. and lir lt 42.
+iiirb = loglir ge 42.
+iiirw = loglir gt 0. and loglir lt 42.
 ;; AGN fraction minimum of 70%
 ;iifagn06 = agnf06.obs ge 0.7
 ;iifagn15 = agnf15.obs ge 0.7

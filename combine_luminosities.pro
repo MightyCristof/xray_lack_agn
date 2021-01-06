@@ -1,3 +1,4 @@
+;; Note 1: RXLIM: RX at flux limit, including detected sources. CMC 11-Dec-20 (after paper acceptace)
 PRO combine_luminosities
 
 
@@ -10,13 +11,10 @@ common _inf_nst
 common _det_cha    
 common _det_xmm    
 common _det_nst 
-common _det_wac    
+common _wac    
 common _xconv      
 common _fxlim    
 common _agnlum 
-;common _clean_cha
-;common _clean_xmm
-;common _clean_nst
 common _quality   
 
 
@@ -50,9 +48,12 @@ e_llnon = dblarr(nsrc)-9999.
 xdet = strarr(nsrc)
 xnon = strarr(nsrc)
 xcat = ['CHA','XMM','NST']
+;; See Note 1
+rxlim = dblarr(nsrc)-9999.
+e_rxlim = dblarr(nsrc)-9999.
 for i = 0,nfield-1 do begin
     re = execute('idet_fill = where(lx eq 0. and IIQUAL_DET'+xfield[i]+',detct)')
-    if (detct gt 0.) then begin
+    if (detct gt 0) then begin
         xdet[idet_fill] = xcat[i]
         re = execute('lx[idet_fill] = lx'+xfield[i]+'[idet_fill]')
         re = execute('e_lx[idet_fill] = e_lx'+xfield[i]+'[idet_fill]')
@@ -63,10 +64,10 @@ for i = 0,nfield-1 do begin
         re = execute('fx[idet_fill] = FX'+xfield[i]+'[idet_fill]')
         re = execute('e_fx[idet_fill] = E_FX'+xfield[i]+'[idet_fill]')
         re = execute('logfx[idet_fill] = LOGFX'+xfield[i]+'[idet_fill]')
-        re = execute('e_logfx[idet_fill] = E_LOGFX'+xfield[i]+'[idet_fill]')
+        re = execute('e_logfx[idet_fill] = E_LOGFX'+xfield[i]+'[idet_fill]')        
     endif
     re = execute('inon_fill = where(lxlim eq 0. and iiqual_non and IIQUAL_NON'+xfield[i]+',nonct)')
-    if (nonct gt 0.) then begin
+    if (nonct gt 0) then begin
         xnon[inon_fill] = xcat[i]
         re = execute('lxlim[inon_fill] = lxlim'+xfield[i]+'[inon_fill]')
         re = execute('e_lxlim[inon_fill] = e_lxlim'+xfield[i]+'[inon_fill]')
@@ -79,6 +80,9 @@ for i = 0,nfield-1 do begin
         re = execute('llnon[inon_fill] = LLNON'+xfield[i]+'[inon_fill]')
         re = execute('e_llnon[inon_fill] = E_LLNON'+xfield[i]+'[inon_fill]')
     endif
+    ;; See Note 1
+    if (detct gt 0) then re = execute('rxlim[idet_fill] = RXLIM'+xfield[i]+'[idet_fill]')
+    if (nonct gt 0) then re = execute('rxlim[inon_fill] = RXLIM'+xfield[i]+'[inon_fill]')
 endfor
 
 sav_vars = ['LX','E_LX','LOGLX','E_LOGLX', $
@@ -86,7 +90,8 @@ sav_vars = ['LX','E_LX','LOGLX','E_LOGLX', $
             'LXLIM','E_LXLIM','LOGLXLIM','E_LOGLXLIM', $
             'FXLIM','E_FXLIM','LOGFXLIM','E_LOGFXLIM', $
             'LLDET','E_LLDET','LLNON','E_LLNON', $
-            'xdet','xnon']
+            'XDET','XNON', $
+            'RXLIM','E_RXLIM']
 sav_inds = []
 
 

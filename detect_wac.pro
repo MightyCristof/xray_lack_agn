@@ -14,13 +14,13 @@ wac_sep = sepdist/3600.
 spherematch,wac.ra,wac.dec,ra,dec,wac_sep,icat,isamp,sep_wac
 
 ;; byte flag for detected/matched in WISE AGN Catalog
-iidet_wac = bytarr(nsrc)
-iidet_wac[isamp] = 1
+iiwac = bytarr(nsrc)
+iiwac[isamp] = 1
 sdst_wac = dblarr(nsrc)
 sdst_wac[isamp] = sep_wac
 
 ;; save data
-save,wac,iidet_wac,sdst_wac,/compress,file='detections_wac.sav'
+save,wac,iiwac,sdst_wac,/compress,file='detections_wac.sav'
 
 
 END

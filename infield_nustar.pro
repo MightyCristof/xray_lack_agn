@@ -21,17 +21,19 @@ cat_id = create_nustar_master_obsid_list()
 ;; use only OBSID that are in catalots
 mast_id = mast_nst.obsid
 match,mast_id,cat_id,imast,icat
-iimast_nst = bytarr(n_elements(mast_nst))
-iimast_nst[imast] = 1
-mast_nst = mast_nst[where(iimast_nst,/null)]
+iimast_id = bytarr(n_elements(mast_nst))
+iimast_id[imast] = 1
+mast_nst = mast_nst[where(iimast_id,/null)]
 ;; use only mast_nstived sources
 mast_nst = mast_nst[where(mast_nst.status eq 'ARCHIVED' or mast_nst.status eq 'OBSERVED',/null)]
 ;; select SCIENCE mode
 mast_nst = mast_nst[where(mast_nst.observation_mode eq 'SCIENCE',/null)]
 ;; output matched observation data
+iimast_nst = bytarr(n_elements(mast_nst))
 iiinf_nst = bytarr(nsrc)            ;; in field
 texp_nst = dblarr(nsrc)-9999.       ;; exposure time (ontime)
 sdst_nst = dblarr(nsrc)-9999.       ;; separation distance from field center
+obsid_nst = lon64arr(nsrc)
 
 ;; NuSTAR FOV is 13'x13'
 ;; https://heasarc.gsfc.nasa.gov/docs/nustar/nustar.html
@@ -53,10 +55,12 @@ for i = 0,n_elements(uind)-1 do begin
     imatch = where(isamp eq uind[i],mlen)
     if (mlen eq 0) then stop
     min_sep = min(sep_cntr[imatch],imin)
+    iimast_nst[ifield[imatch[imin]]] = 1
     texp_nst[isamp[imatch[imin]]] = total(mast_nst[ifield[imatch]].ontime_a)
     sdst_nst[isamp[imatch[imin]]] = min_sep
+    obsid_nst[isamp[imatch[imin]]] = mast_nst[ifield[imatch[imin]]].obsid
 endfor
-save,mast_nst,iiinf_nst,texp_nst,sdst_nst,fov_nst,file='infield_nst.sav'
+save,mast_nst,iimast_nst,iiinf_nst,texp_nst,sdst_nst,obsid_nst,fov_nst,file='infield_nst.sav'
 
 
 END

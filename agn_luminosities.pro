@@ -1,3 +1,4 @@
+;; Note 1: RXLIM: RX at flux limit, including detected sources. CMC 11-Dec-20 (after paper acceptace)
 PRO agn_luminosities, DERED = dered, $
                       REL = rel           
 
@@ -15,11 +16,12 @@ common _xconv
 common _fxlim
 
 
+
 ;; check LX-LIR RELATION
 rel = strupcase(rel)
-if (total([strmatch(rel,'C17'),strmatch(rel,'F09')]) eq 0) then begin
+if (total([strmatch(rel,'C17'),strmatch(rel,'S15'),strmatch(rel,'F09')]) eq 0) then begin
     print, "INVALID LX-LIR RELATION"
-    return
+    stop
 endif
 
 ;; SED model output
@@ -31,14 +33,22 @@ ilir = where(iilir,nagn,ncomplement=ngal,/null)
 ebv = reform(param[0,*])
 e_ebv = reform(sig_ebv[1,*])
 ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), -9999 (no AGN)
-icest = where(iilir and sig_ebv[1,*] le 0,cestct)
-if (cestct gt 0.) then e_ebv[icest] = ebv[icest]*0.1
+;; 0 take 1/100 of EBV
+icest = where(e_ebv eq 0,cestct)
+if (cestct gt 0) then e_ebv[icest] = ebv[icest]*0.01
+;; -1 take 1/10 of EBV
+icest = where(e_ebv eq -1.,cestct)
+if (cestct gt 0) then e_ebv[icest] = ebv[icest]*0.1
+;; -9999 set to zero
+icest = where(e_ebv eq -9999.,cestct)
+if (cestct gt 0) then e_ebv[icest] = 0.
+
 ;; SED best fit redshift parameter
 zsed = reform(param[1,*])
 e_zsed = reform(sig_red[1,*])
 ;; check resamp distribution for -1 (only one source), use original redshift error
 izest = where(e_zsed le 0,zestct)
-if (zestct gt 0.) then e_zsed[izest] = zerr[izest]
+if (zestct gt 0) then e_zsed[izest] = zerr[izest]
 ;; luminosity distance
 dl2 = dlum(z,/sq)
 
@@ -107,6 +117,7 @@ loglxir = dblarr(nsrc)-9999.
 loglxir_scat = dblarr(nsrc)-9999.
 case rel of 
     'F09': loglxir[ilir] = lxir_f09(loglir[ilir],scatter=scat)
+    'S15': loglxir[ilir] = lxir_s15(loglir[ilir],scatter=scat)
     'C17': loglxir[ilir] = lxir_c17(loglir[ilir],scatter=scat)
 endcase
                          
@@ -189,7 +200,9 @@ for i = 0,nfield-1 do begin
     re = execute(loglxlim[i]+' = dblarr(nsrc)-9999.')
     re = execute(e_loglxlim[i]+' = dblarr(nsrc)-9999.')
     re = execute(fxlim_cs[i]+' = dblarr(degr[i])')
-    re = execute('iivalid = IINON'+xfield[i])
+    ;; See Note 1
+    ;re = execute('iivalid = IINON'+xfield[i])
+    re = execute('iivalid = IIINF'+xfield[i])
     ivalid = where(iivalid,validct)
     if (validct gt 0) then begin
         re = execute(fxlim[i]+'[ivalid] = extrapolate_flim(CAT_LIM'+xfield[i]+',CAT_EXP'+xfield[i]+',TEXP'+xfield[i]+'[ivalid],degr[i],FLIM_CS='+fxlim_cs[i]+')')
@@ -214,17 +227,23 @@ lldet = 'LLDET'+xfield
 llnon = 'LLNON'+xfield
 e_lldet = 'E_'+lldet
 e_llnon = 'E_'+llnon
+;; See Note 1
+rxlim = 'RXLIM'+xfield
+e_rxlim = 'E_'+rxlim
 for i = 0,nfield-1 do begin
     re = execute(lldet[i]+' = dblarr(nsrc)-9999.')
     re = execute(llnon[i]+' = dblarr(nsrc)-9999.')
     re = execute(e_lldet[i]+' = dblarr(nsrc)-9999.')
     re = execute(e_llnon[i]+' = dblarr(nsrc)-9999.')
+    ;; See Note 1
+    re = execute(rxlim[i]+' = dblarr(nsrc)-9999.')
+    re = execute(e_rxlim[i]+' = dblarr(nsrc)-9999.')
     ;; detections
     re = execute('iivalid = IIDET'+xfield[i]+' and lxir gt 0.')
     ivalid = where(iivalid,detct)
     if (detct gt 0.) then begin
         ;; start in linear space
-        re = execute(lldet[i]+'[ivalid] = lx'+xfield[i]+'[ivalid]/(lxir[ivalid]*lxir_scat[ivalid])')
+        re = execute(lldet[i]+'[ivalid] = lx'+xfield[i]+'[ivalid]/(lxir[ivalid])');*lxir_scat[ivalid])')
         ;; errors attributed to X-ray flux and IR flux
         re = execute(e_lldet[i]+'[ivalid] = '+lldet[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/FX'+xfield[i]+'[ivalid])^2. + (sig_fir[1,ivalid]/sig_fir[0,ivalid])^2.)')
         ;; check resamp distribution for 0 (MEDABSDEV==0), -1 (only one source), or -9999 (should not ever be the case where AGN component; sanity check)
@@ -238,9 +257,14 @@ for i = 0,nfield-1 do begin
     re = execute('iivalid = IINON'+xfield[i]+' and lxir gt 0.')
     ivalid = where(iivalid,nonct)
     if (nonct gt 0.) then re = execute(llnon[i]+'[ivalid] = LOGLXLIM'+xfield[i]+'[ivalid]-loglxir[ivalid]')
+    ;; See Note 1
+    ;; limits (detection + non-detection)
+    re = execute('iivalid = IIINF'+xfield[i]+' and lxir gt 0.')
+    ivalid = where(iivalid,limct)
+    if (limct gt 0.) then re = execute(rxlim[i]+'[ivalid] = LOGLXLIM'+xfield[i]+'[ivalid]-loglxir[ivalid]')
 endfor
 
-sav_vars = [sav_vars,lldet,e_lldet,llnon,e_llnon]
+sav_vars = [sav_vars,lldet,e_lldet,llnon,e_llnon,rxlim,e_rxlim]
 sav_inds = [sav_inds]
 
 

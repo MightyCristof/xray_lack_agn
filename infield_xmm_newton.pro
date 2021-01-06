@@ -22,9 +22,9 @@ mast_id = mast_xmm.obsid
 cat_id = cat.obs_id
 cat_id = cat_id[uniq(cat_id,sort(cat_id))]
 match,mast_id,cat_id,imast,icat
-iimast_xmm = bytarr(n_elements(mast_xmm))
-iimast_xmm[imast] = 1
-mast_xmm = mast_xmm[where(iimast_xmm,/null)]
+iimast_id = bytarr(n_elements(mast_xmm))
+iimast_id[imast] = 1
+mast_xmm = mast_xmm[where(iimast_id,/null)]
 ;; use only mast_xmmived sources (possibly use )
 mast_xmm = mast_xmm[where(mast_xmm.status eq 'ARCHIVED' or mast_xmm.status eq 'OBSERVED',/null)]  ;; observed sources
 mast_xmm = mast_xmm[where(mast_xmm.pn_time gt 0.,/null)]                                      ;; ensure PN observation
@@ -34,10 +34,11 @@ iimode = strmatch(mast_xmm.pn_mode,'*FLG*',/fold) or $                          
          strmatch(mast_xmm.pn_mode,'*EFF*',/fold)
 mast_xmm = mast_xmm[where(iimode,/null)]
 ;; output matched observation data
+iimast_xmm = bytarr(n_elements(mast_xmm))
 iiinf_xmm = bytarr(nsrc)            ;; in field
 texp_xmm = dblarr(nsrc)-9999.       ;; exposure time (ontime)
 sdst_xmm = dblarr(nsrc)-9999.       ;; separation distance from field center
-
+obsid_xmm = lon64arr(nsrc)
 ;; XMM PN MOS FOV is ~27.5'x27.5'; use FOV inscribed circle--being conservative
 ;; https://heasarc.gsfc.nasa.gov/docs/xmm/xmm.html
 fov_xmm = 33.*60./2.
@@ -58,10 +59,12 @@ for i = 0,n_elements(uind)-1 do begin
     imatch = where(isamp eq uind[i],mlen)
     if (mlen eq 0) then stop
     min_sep = min(sep_cntr[imatch],imin)
+    iimast_xmm[ifield[imatch[imin]]] = 1
     texp_xmm[isamp[imatch[imin]]] = total(mast_xmm[ifield[imatch]].pn_time)
     sdst_xmm[isamp[imatch[imin]]] = min_sep
+    obsid_xmm[isamp[imatch[imin]]] = mast_xmm[ifield[imatch[imin]]].obsid
 endfor
-save,mast_xmm,iiinf_xmm,texp_xmm,sdst_xmm,fov_xmm,file='infield_xmm.sav'
+save,mast_xmm,iimast_xmm,iiinf_xmm,texp_xmm,sdst_xmm,obsid_xmm,fov_xmm,file='infield_xmm.sav'
 
 
 END

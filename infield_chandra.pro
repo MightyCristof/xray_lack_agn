@@ -22,16 +22,18 @@ mast_id = mast_cha.obsid
 cat_id = cat[where(cat.instrument eq 'ACIS',/null)].obsid
 cat_id = cat_id[uniq(cat_id,sort(cat_id))]
 match,mast_id,cat_id,imast,icat
-iimast_cha = bytarr(n_elements(mast_cha))
-iimast_cha[imast] = 1
-mast_cha = mast_cha[where(iimast_cha,/null)]
+iimast_id = bytarr(n_elements(mast_cha))
+iimast_id[imast] = 1
+mast_cha = mast_cha[where(iimast_id,/null)]
 ;; use only mast_chaived sources
 mast_cha = mast_cha[where(mast_cha.status eq 'ARCHIVED' or mast_cha.status eq 'OBSERVED',/null)]
 mast_cha = mast_cha[where(mast_cha.detector eq 'ACIS-I',/null)]
 ;; output matched observation data
+iimast_cha = bytarr(n_elements(mast_cha))
 iiinf_cha = bytarr(nsrc)            ;; in field
 texp_cha = dblarr(nsrc)-9999.       ;; exposure time (ontime)
 sdst_cha = dblarr(nsrc)-9999.       ;; separation distance from field center
+obsid_cha = lon64arr(nsrc)
 
 ;; ACIS-I FOV is 16'x16'
 ;; https://heasarc.gsfc.nasa.gov/docs/chandra/chandra.html
@@ -49,14 +51,19 @@ endif
 
 ;; loop over observations and choose closest field
 uind = isamp[uniq(isamp,sort(isamp))]
+totmlen = intarr(n_elements(uind))
 for i = 0,n_elements(uind)-1 do begin
     imatch = where(isamp eq uind[i],mlen)
     if (mlen eq 0) then stop
+    totmlen[i] = mlen
     min_sep = min(sep_cntr[imatch],imin)
+    iimast_cha[ifield[imatch[imin]]] = 1
     texp_cha[isamp[imatch[imin]]] = total(mast_cha[ifield[imatch]].exposure)
     sdst_cha[isamp[imatch[imin]]] = min_sep
+    obsid_cha[isamp[imatch[imin]]] = mast_cha[ifield[imatch[imin]]].obsid
 endfor
-save,mast_cha,iiinf_cha,texp_cha,sdst_cha,fov_cha,file='infield_cha.sav'
+stop
+save,mast_cha,iimast_cha,iiinf_cha,texp_cha,sdst_cha,obsid_cha,fov_cha,file='infield_cha.sav'
 
 
 END

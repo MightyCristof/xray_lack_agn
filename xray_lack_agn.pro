@@ -4,11 +4,11 @@ PRO xray_lack_agn, subdir, $
                    CONVERT = convert, $
                    FXLIM = fxlim, $
                    AGNLUM = agnlum, $
-;                   CLEAN = clean, $
                    QUALITY = quality, $
                    COMBINE = combine, $
                    NHDIST = nhdist, $
-                   SURV = surv
+                   SURV = surv, $
+                   XSTACK = xstack
                    
 
 ;; check for keyword commands
@@ -21,7 +21,8 @@ nkeys = n_elements(infield) + $
         n_elements(quality) + $
         n_elements(combine) + $
         n_elements(nhdist) + $
-        n_elements(surv)
+        n_elements(surv) + $
+        n_elements(xstack)
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; assume current directory unless specified
@@ -30,8 +31,9 @@ if (n_elements(subdir) eq 0) then path = './' else $
 
 ;; print LX-LIR information to screen
 if keyword_set(agnlum) then begin
-    rel = 'F09'
-    if (strmatch(strupcase(agnlum),'C17')) then rel = 'C17'
+    rel = 'C17'
+    if (strmatch(strupcase(agnlum),'S15')) then rel = 'S15'
+    if (strmatch(strupcase(agnlum),'F09')) then rel = 'F09'
     print, ''
     print, '***********************************************'
     print, '********     LX-LIR RELATION: '+rel+'      ********'
@@ -39,13 +41,25 @@ if keyword_set(agnlum) then begin
     print, ''
 endif
 
+;; print survival analysis method to screen
+if keyword_set(surv) then begin
+    fmt = 'R'
+    if (strmatch(strupcase(surv),'IDL')) then fmt = 'IDL'
+    if (strmatch(strupcase(surv),'ASURV')) then fmt = 'ASURV'
+    print, ''
+    print, '*************************************************'
+    print, '********      SURV ANALYSIS: '+string(fmt,format='(a05)')+'       ********'
+    print, '*************************************************'
+    print, ''
+endif
+
 ;; load SED output and template components
 load_vars,'fits.sav','_fits'
 load_vars,'resamp.sav','_resamp'
-load_comp,'../data_prep/comp*.sav'
+load_vars,'../data_prep/comp*.sav','_comp'
 
 ;; directory for output
-pushd,path
+cd,path
 
 ;; flag X-ray footprints
 if keyword_set(infield) then begin
@@ -70,7 +84,7 @@ endif
 load_vars,'detections_cha.sav','_det_cha'
 load_vars,'detections_xmm.sav','_det_xmm'
 load_vars,'detections_nst.sav','_det_nst'
-load_vars,'detections_wac.sav','_det_wac'
+load_vars,'detections_wac.sav','_wac'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; convert X-ray fluxes to 2-10keV
@@ -98,18 +112,6 @@ endif
 load_vars,'src_luminosities.sav','_agnlum'
 if (nkeys eq 0) then GOTO, NO_KEYS
 
-;;; clean X-ray sources
-;if keyword_set(clean) then begin
-;    clean_source_chandra
-;    clean_source_xmm
-;    clean_source_nustar
-;    nkeys--
-;endif
-;load_vars,'cleaned_cha.sav','_clean_cha'
-;load_vars,'cleaned_xmm.sav','_clean_xmm'
-;load_vars,'cleaned_nst.sav','_clean_nst'
-;if (nkeys eq 0) then GOTO, NO_KEYS
-
 ;; pass quality cuts for analysis set
 if keyword_set(quality) then begin
     source_quality_cuts
@@ -136,20 +138,33 @@ if (nkeys eq 0) then GOTO, NO_KEYS
 
 ;; run survival analysis on analysis set
 if keyword_set(surv) then begin
-    surv_analysis,/asurv
+    surv_analysis,fmt=fmt
     nkeys--        
 endif
+load_vars,'surv_anal.sav','_surv'
 
+;; output x-ray stacks for stacking
+if keyword_set(xstack) then begin
+    load_vars,'rsurv_input.sav','_rsurv'
+    xstack_output
+    nkeys--
+endif
+load_vars,'stack_fx.sav','_xstack'
 
 NO_KEYS:
-popd
-
 
 
 END
 
 
+;redshift vs mag
 
+;RAGN galaxies vs AGN
 
-
+; IDL> print, total(iiinf_cha)
+;       5939.00
+; IDL> print, total(iiinf_xmm)
+;       37146.0
+; IDL> print, total(iiinf_nst)
+;       701.000
 
