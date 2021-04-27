@@ -164,7 +164,7 @@ for i = 0,nfield-1 do begin
     ivalid = where(iivalid,validct)
     if (validct gt 0.) then begin
         ;; K correct flux to rest-frame, f_kcorr = f_obs*(1+z)^(Γ-2)
-        re = execute('fx_kcorr = FX'+xfield[i]+'[ivalid]*(1+z[ivalid])^(cat_gamma[i]-2.)')
+        re = execute('fx_kcorr = FX'+xfield[i]+'[ivalid]*(1.+z[ivalid])^(cat_gamma[i]-2.)')
         re = execute(lx[i]+'[ivalid] = 4.*!const.pi*dl2[ivalid]*fx_kcorr')
         re = execute(e_lx[i]+'[ivalid] = '+lx[i]+'[ivalid] * sqrt((E_FX'+xfield[i]+'[ivalid]/fx_kcorr)^2. + (zerr[1,ivalid]/z[ivalid])^2.)')
         re = execute(loglx[i]+'[ivalid] = alog10('+lx[i]+'[ivalid])>(-9999.)')
